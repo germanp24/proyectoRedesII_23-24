@@ -1,8 +1,4 @@
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 public class RCS {
-    private static final Logger LOGGER = Logger.getLogger("serverLogger");
 
     private String[] argumentos;
     private String modo;
@@ -16,7 +12,6 @@ public class RCS {
      * @param puerto
      * @param max_clientes
      */
-
     public RCS (String modo, int puerto, int max_clientes){
         this.modo=modo;
         this.puerto=puerto;
