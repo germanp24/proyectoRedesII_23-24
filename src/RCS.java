@@ -1,53 +1,74 @@
-public class RCS {
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.util.Arrays;
+import java.util.Scanner;
+import java.util.logging.Logger;
 
-    private String[] argumentos;
-    private String modo;
-    private int puerto;
-    private int max_clientes;
+public class RCS {
+    private static final Logger SERVER_LOGGER = Logger.getLogger("serverLogger");  // Creates the log files
+    private static final Scanner TECLADO= new Scanner(System.in);   // Read from keyboard
+
+    private static String serverMode;
+    private static int serverPort;
+    private static int serverMaxClients;
+
+    public static void main(String[] args) throws IOException {
+        checkServerArgs(args);
+        startServer(args);
+
+
+    }
 
     /**
-     * Constructor de la clase RCS
+     * Comprueba que el numero de argumentos introducido es correcto.
      *
-     * @param modo
-     * @param puerto
-     * @param max_clientes
+     * @param argumentos
      */
-    public RCS (String modo, int puerto, int max_clientes){
-        this.modo=modo;
-        this.puerto=puerto;
-        this.max_clientes=max_clientes;
+    private static void checkServerArgs(String[] argumentos) {    // Comprueba que los argumentos sean correcto
+        if (argumentos.length != 3) {
+            System.out.println("ERROR: Numero Incorrecto de Parametros.");
+            System.out.println("Usa: java RCS <modo> <puerto> <max_clientes>");
+            System.exit(1);
+        }
+
+        try{
+            serverMode = argumentos[0];
+            serverPort = Integer.parseInt(argumentos[1]);
+            serverMaxClients = Integer.parseInt(argumentos[2]);
+
+            System.out.println("Argumentos introducidos: " + Arrays.toString(argumentos));
+
+        } catch (Exception e) {
+            System.out.println("Error en la asignacion de argumentos");
+            System.out.println("Revisa el tipo de los argumentos y vuelve a intentarlo de nuevo.");
+            System.exit(1);
+        }
     }
 
+    /**
+     * Inicia el modo servidor.
+     *
+     * @param argumentos
+     */
+    private static void startServer(String[] argumentos) throws IOException {
+        System.out.println("Iniciando Servidor...");
 
-    public String[] getArgumentos() {
-        return argumentos;
-    }
+        // Obtengo nombre de host e IP privada, separo, y me quedo solo con la IP.
+        String hostnameAndIp = String.valueOf(InetAddress.getLocalHost());
+        String[] ipParts = hostnameAndIp.split("/");
+        String privateIpServer = ipParts[1];
 
-    public void setArgumentos(String[] argumentos) {
-        this.argumentos = argumentos;
-    }
+        System.out.println("IP Privada: " + privateIpServer);
+        System.out.println("Puerto: " + 1024);
 
-    public String getModo() {
-        return modo;
-    }
+        try{
+            ServerSocket serverSocket = new ServerSocket(1024);
+            System.out.println("Socket creado correctamente");
+        } catch (Exception e){
+            System.out.println("Error en la creación del socket");
 
-    public void setModo(String modo) {
-        this.modo = modo;
-    }
+        }
 
-    public int getPuerto() {
-        return puerto;
-    }
-
-    public void setPuerto(int puerto) {
-        this.puerto = puerto;
-    }
-
-    public int getMax_clientes() {
-        return max_clientes;
-    }
-
-    public void setMax_clientes(int max_clientes) {
-        this.max_clientes = max_clientes;
     }
 }
