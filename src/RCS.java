@@ -1,9 +1,13 @@
+import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.util.Arrays;
 import java.util.Scanner;
+import java.util.logging.FileHandler;
+import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 
 public class RCS {
     private static final Logger SERVER_LOGGER = Logger.getLogger("serverLogger");  // Creates the log files
@@ -12,9 +16,12 @@ public class RCS {
     private static String serverMode;
     private static int serverPort;
     private static int serverMaxClients;
+    private static int serverCurrentClients;
 
     public static void main(String[] args) throws IOException {
         checkServerArgs(args);
+        startLogger();
+
         startServer(args);
 
 
@@ -52,6 +59,7 @@ public class RCS {
      * @param argumentos
      */
     private static void startServer(String[] argumentos) throws IOException {
+
         System.out.println("Iniciando Servidor...");
 
         // Obtengo nombre de host e IP privada, separo, y me quedo solo con la IP.
@@ -59,16 +67,53 @@ public class RCS {
         String[] ipParts = hostnameAndIp.split("/");
         String privateIpServer = ipParts[1];
 
-        System.out.println("IP Privada: " + privateIpServer);
-        System.out.println("Puerto: " + 1024);
+        System.out.println("IP Privada Server: " + privateIpServer);
+        System.out.println("Puerto Server: " + serverPort);
+
+        ServerSocket serverSocket = null;
 
         try{
-            ServerSocket serverSocket = new ServerSocket(1024);
+            serverSocket = new ServerSocket(serverPort);
             System.out.println("Socket creado correctamente");
+            SERVER_LOGGER.info("Socket servidor creado correctamente.");
         } catch (Exception e){
-            System.out.println("Error en la creación del socket");
-
+            System.out.println("Error en la creación del socket servidor");
+            SERVER_LOGGER.info("Error en la creación del socket servidor");
+            System.exit(1);
         }
 
+
+
+        serverSocket.accept();  //Bloquea la ejecución hasta que recibe una petición.
+
+    }
+
+    private static void startLogger() {
+        try {
+            checkLogsFolder();
+
+            FileHandler fileHandler_RCS = new FileHandler("logs/RCS.log", 0, 1);
+            SERVER_LOGGER.addHandler(fileHandler_RCS);
+            SimpleFormatter formatter_errors = new SimpleFormatter();
+            fileHandler_RCS.setFormatter(formatter_errors);
+            SERVER_LOGGER.setUseParentHandlers(false); // Evita que el logger escriba en consola
+
+            SERVER_LOGGER.info("Logger del servidor creado e inicializado.");
+
+        } catch (Exception e) {
+            System.out.println("Error en la creación de SERVER_LOGGER.");
+            System.exit(1);
+        }
+    }
+
+    /**
+     * Comprueba que la carpeta existe, sino la crea.
+     */
+    private static void checkLogsFolder() {  // check if logs folder exists, if not, create it
+        File logsFolder = new File("logs");
+
+        if (!logsFolder.exists()) {
+            logsFolder.mkdir();
+        }
     }
 }
