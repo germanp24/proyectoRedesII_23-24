@@ -8,6 +8,8 @@ import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
+import java.net.Socket;
+
 
 public class RCS {
     private static final Logger SERVER_LOGGER = Logger.getLogger("serverLogger");  // Creates the log files
@@ -81,13 +83,31 @@ public class RCS {
             SERVER_LOGGER.info("Error en la creación del socket servidor");
             System.exit(1);
         }
+        for (int i = 0; i < serverMaxClients; i++) {
+            Socket clientSocket = serverSocket.accept(); // Bloquea la ejecución hasta que recibe una petición.
+            System.out.println("Cliente conectado desde " + clientSocket.getInetAddress().getHostAddress());
 
-
-
-        serverSocket.accept();  //Bloquea la ejecución hasta que recibe una petición.
-
+            // Crear y ejecutar un nuevo hilo para manejar al cliente
+            Thread clientHandlerThread = new Thread(() -> servirCliente(clientSocket));
+            clientHandlerThread.start();
+        }
+    }
+    /**
+     * Cierra la conexión con el cliente.
+     *
+     * @param cliente El socket que representa la conexión con el cliente.
+     */
+    public static void servirCliente(Socket cliente) {
+        try {
+            cliente.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
+    /**
+     * Inicia y configura el sistema de registro del servidor.
+     */
     private static void startLogger() {
         try {
             checkLogsFolder();
@@ -116,4 +136,5 @@ public class RCS {
             logsFolder.mkdir();
         }
     }
+
 }
