@@ -2,6 +2,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
+import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.Scanner;
 import java.util.logging.FileHandler;
@@ -13,7 +14,7 @@ import java.net.Socket;
 
 public class RCS {
     private static final Logger SERVER_LOGGER = Logger.getLogger("serverLogger");  // Creates the log files
-    private static final Scanner TECLADO= new Scanner(System.in);   // Read from keyboard
+    private static final Scanner TECLADO = new Scanner(System.in);   // Read from keyboard
 
     private static String serverMode;
     private static int serverPort;
@@ -25,8 +26,6 @@ public class RCS {
         startLogger();
 
         startServer(args);
-
-
     }
 
     /**
@@ -41,7 +40,7 @@ public class RCS {
             System.exit(1);
         }
 
-        try{
+        try {
             serverMode = argumentos[0];
             serverPort = Integer.parseInt(argumentos[1]);
             serverMaxClients = Integer.parseInt(argumentos[2]);
@@ -51,6 +50,8 @@ public class RCS {
         } catch (Exception e) {
             System.out.println("Error en la asignacion de argumentos");
             System.out.println("Revisa el tipo de los argumentos y vuelve a intentarlo de nuevo.");
+            System.out.println("Saliendo...");
+            SERVER_LOGGER.info("Error in the arguments assignation. Exiting...");
             System.exit(1);
         }
     }
@@ -61,52 +62,38 @@ public class RCS {
      * @param argumentos
      */
     private static void startServer(String[] argumentos) throws IOException {
-
         System.out.println("Iniciando Servidor...");
-
-        // Obtengo nombre de host e IP privada, separo, y me quedo solo con la IP.
-        String hostnameAndIp = String.valueOf(InetAddress.getLocalHost());
-        String[] ipParts = hostnameAndIp.split("/");
-        String privateIpServer = ipParts[1];
-
-        System.out.println("IP Privada Server: " + privateIpServer);
-        System.out.println("Puerto Server: " + serverPort);
-
         ServerSocket serverSocket = null;
 
-        try{
+        try {
             serverSocket = new ServerSocket(serverPort);
-            System.out.println("Socket creado correctamente");
-            SERVER_LOGGER.info("Socket servidor creado correctamente.");
-        } catch (Exception e){
-            System.out.println("Error en la creación del socket servidor");
-            SERVER_LOGGER.info("Error en la creación del socket servidor");
+            System.out.println("Socket servidor creado correctamente");
+            SERVER_LOGGER.info("Server socket correctly created");
+
+            obtainServerIpPort();
+
+        } catch (Exception e) {
+            System.out.println("Error en la creación del socket servidor. Saliendo...");
+            SERVER_LOGGER.info("Error in the creation of the server socket. Exiting...");
             System.exit(1);
         }
-        for (int i = 0; i < serverMaxClients; i++) {
-            Socket clientSocket = serverSocket.accept(); // Bloquea la ejecución hasta que recibe una petición.
+
+        // Loop to accept clients while the number of clients is under the maximum specified.
+        while (serverCurrentClients <= serverMaxClients) {
+            Socket clientSocket = serverSocket.accept(); // Blocks the petition until a client connects.
+            serverCurrentClients++; // Increases the variable by one every time a client is connected.
+
             System.out.println("Cliente conectado desde " + clientSocket.getInetAddress().getHostAddress());
+            SERVER_LOGGER.info("Client connected from " + clientSocket.getInetAddress().getHostAddress());
 
             // Crear y ejecutar un nuevo hilo para manejar al cliente
-            Thread clientHandlerThread = new Thread(() -> servirCliente(clientSocket));
-            clientHandlerThread.start();
-        }
-    }
-    /**
-     * Cierra la conexión con el cliente.
-     *
-     * @param cliente El socket que representa la conexión con el cliente.
-     */
-    public static void servirCliente(Socket cliente) {
-        try {
-            cliente.close();
-        } catch (IOException e) {
-            e.printStackTrace();
+            ServerThread serverThread = new ServerThread(clientSocket);
+            serverThread.start();
         }
     }
 
     /**
-     * Inicia y configura el sistema de registro del servidor.
+     * Starts and configure the logger for the server.
      */
     private static void startLogger() {
         try {
@@ -118,7 +105,7 @@ public class RCS {
             fileHandler_RCS.setFormatter(formatter_errors);
             SERVER_LOGGER.setUseParentHandlers(false); // Evita que el logger escriba en consola
 
-            SERVER_LOGGER.info("Logger del servidor creado e inicializado.");
+            SERVER_LOGGER.info("Logger of the server created and initialized.");
 
         } catch (Exception e) {
             System.out.println("Error en la creación de SERVER_LOGGER.");
@@ -127,7 +114,7 @@ public class RCS {
     }
 
     /**
-     * Comprueba que la carpeta existe, sino la crea.
+     * Checks that the "logs" folder exists, if not, then creates it.
      */
     private static void checkLogsFolder() {  // check if logs folder exists, if not, create it
         File logsFolder = new File("logs");
@@ -137,4 +124,19 @@ public class RCS {
         }
     }
 
+    public static void obtainServerIpPort() throws UnknownHostException {
+        try {
+            // Obtengo nombre de host e IP privada, separo, y me quedo solo con la IP.
+            String hostnameAndIp = String.valueOf(InetAddress.getLocalHost());
+            String[] ipParts = hostnameAndIp.split("/");
+            String privateIpServer = ipParts[1];
+
+            System.out.println("IP Privada Server: " + privateIpServer);
+            System.out.println("Puerto Server: " + serverPort);
+
+        } catch (Exception e) {
+            System.out.println("Error al obtener la IP privada de este equipo. Saliendo...");
+            SERVER_LOGGER.info("Error obtaining the private IP of the server. Exiting...");
+        }
+    }
 }
