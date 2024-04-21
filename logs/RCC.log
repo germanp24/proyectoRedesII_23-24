@@ -1,4 +1,6 @@
-abr 21, 2024 5:32:35 P. M. RCC startLogger
+abr 21, 2024 6:57:15 P. M. RCC startLogger
 INFO: Logger del cliente creado e inicializado
-abr 21, 2024 5:32:35 P. M. RCC startClient
+abr 21, 2024 6:57:15 P. M. RCC startClient
 INFO: Conexión con el servidor exitosa
+abr 21, 2024 6:57:15 P. M. RCC startClient
+INFO: Connection with the server closed.
