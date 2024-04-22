@@ -62,7 +62,30 @@ public class RCS {
      * @param argumentos
      */
     private static void startServer(String[] argumentos) throws IOException {
+        switch (serverMode) {
+            case "normal":
+                runNormalServer();
+                break;
+
+            case "ssl":
+                runSSLServer();
+                break;
+
+            default:
+                System.out.println("ERROR: There are only these two modes: normal or ssl (lowercase)");
+                SERVER_LOGGER.info("Error related with the mode entered by argument. Exiting...");
+                System.exit(1);
+        }
+    }
+
+    /**
+     * Runs a "normal" server
+     *
+     * @throws IOException
+     */
+    private static void runNormalServer() throws IOException {
         System.out.println("Iniciando Servidor...");
+
         ServerSocket serverSocket = null;
 
         try {
@@ -90,6 +113,18 @@ public class RCS {
             ServerThread serverThread = new ServerThread(clientSocket);
             serverThread.start();
         }
+    }
+
+    /**
+     * Runs an SSL Server.
+     *
+     * @throws IOException
+     */
+    private static void runSSLServer() throws IOException {
+        System.out.println("Iniciando Servidor...");
+
+        // TO-DO
+
     }
 
     /**
@@ -124,6 +159,11 @@ public class RCS {
         }
     }
 
+    /**
+     * Obtains the private IP of the server.
+     *
+     * @throws UnknownHostException
+     */
     public static void obtainServerIpPort() throws UnknownHostException {
         try {
             // Obtengo nombre de host e IP privada, separo, y me quedo solo con la IP.
