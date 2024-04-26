@@ -11,7 +11,6 @@ import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 import java.net.Socket;
 
-
 public class RCS {
     private static final Logger SERVER_LOGGER = Logger.getLogger("serverLogger");  // Creates the log files
     private static final Scanner TECLADO = new Scanner(System.in);   // Read from keyboard
@@ -29,7 +28,7 @@ public class RCS {
     }
 
     /**
-     * Comprueba que el numero de argumentos introducido es correcto.
+     * Check the arguments introduced by the user.
      *
      * @param argumentos
      */
@@ -57,7 +56,7 @@ public class RCS {
     }
 
     /**
-     * Inicia el modo servidor.
+     * Starts the server.
      *
      * @param argumentos
      */
@@ -84,19 +83,19 @@ public class RCS {
      * @throws IOException
      */
     private static void runNormalServer() throws IOException {
-        System.out.println("Iniciando Servidor...");
+        System.out.println("Starting Normal Server...");
 
         ServerSocket serverSocket = null;
 
         try {
             serverSocket = new ServerSocket(serverPort);
-            System.out.println("Socket servidor creado correctamente");
+            System.out.println("Server socket correctly created");
             SERVER_LOGGER.info("Server socket correctly created");
 
             obtainServerIpPort();
 
         } catch (Exception e) {
-            System.out.println("Error en la creación del socket servidor. Saliendo...");
+            System.out.println("Error in the creation of the server socket. Exiting...");
             SERVER_LOGGER.info("Error in the creation of the server socket. Exiting...");
             System.exit(1);
         }
@@ -106,10 +105,10 @@ public class RCS {
             Socket clientSocket = serverSocket.accept(); // Blocks the petition until a client connects.
             serverCurrentClients++; // Increases the variable by one every time a client is connected.
 
-            System.out.println("Cliente conectado desde " + clientSocket.getInetAddress().getHostAddress());
+            System.out.println("Cient connected from " + clientSocket.getInetAddress().getHostAddress());
             SERVER_LOGGER.info("Client connected from " + clientSocket.getInetAddress().getHostAddress());
 
-            // Crear y ejecutar un nuevo hilo para manejar al cliente
+            // Create and start a new thread for the client.
             ServerThread serverThread = new ServerThread(clientSocket);
             serverThread.start();
         }
@@ -121,7 +120,7 @@ public class RCS {
      * @throws IOException
      */
     private static void runSSLServer() throws IOException {
-        System.out.println("Iniciando Servidor...");
+        System.out.println("Starting SSL Server...");
 
         // TO-DO
 
