@@ -183,7 +183,7 @@ public class RCS {
 
     // Check if "files_directory" directory exists, if not, create it and fill it with 3 files .txt with "Hello World!" inside.
     private static void checkFilesDirectory() {
-        File filesDirectory = new File("files_directory");
+        File filesDirectory = new File("server_files");
 
         if (!filesDirectory.exists()) {
             filesDirectory.mkdir();

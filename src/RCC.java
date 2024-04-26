@@ -138,9 +138,44 @@ public class RCC {
     private static void runPetitions(Socket clientSocket) {
         System.out.println("Introduce the petition you want to send to the server: ");
         System.out.println("The available petitions are: ");
-        System.out.println("1. GET ");
+        System.out.println("1. LIST <remote_directory>");
+        System.out.println("2. SEND <local_file> <remote_directory>");
+        System.out.println("3. RECEIVE <remote_file> <local_directory>");
+        System.out.println("4. EXEC <command> <arguments>");
+
         String petition = KEYBOARD.nextLine();
-        System.out.println("Petition: " + petition);
+
+        // Divide the petition in tokens
+        String[] petitionTokens = petition.split(" ");
+
+        // Check the first token to know the petition
+        switch (petitionTokens[0]) {
+            case "LIST":
+                System.out.println("Petition LIST");
+
+                // TO-DO
+                break;
+            case "SEND":
+                System.out.println("Petition SEND");
+
+                // TO-DO
+                break;
+            case "RECEIVE":
+                System.out.println("Petition RECEIVE");
+
+                // TO-DO
+                break;
+            case "EXEC":
+                System.out.println("Petition EXEC");
+
+                // TO-DO
+                break;
+            default:
+                System.out.println("Petition not recognized.");
+
+                // TO-DO
+                break;
+        }
     }
 
     /**
