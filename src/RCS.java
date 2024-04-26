@@ -1,4 +1,5 @@
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
@@ -23,6 +24,7 @@ public class RCS {
     public static void main(String[] args) throws IOException {
         checkServerArgs(args);
         startLogger();
+        checkFilesDirectory();
 
         startServer(args);
     }
@@ -176,6 +178,42 @@ public class RCS {
         } catch (Exception e) {
             System.out.println("Error al obtener la IP privada de este equipo. Saliendo...");
             SERVER_LOGGER.info("Error obtaining the private IP of the server. Exiting...");
+        }
+    }
+
+    // Check if "files_directory" directory exists, if not, create it and fill it with 3 files .txt with "Hello World!" inside.
+    private static void checkFilesDirectory() {
+        File filesDirectory = new File("files_directory");
+
+        if (!filesDirectory.exists()) {
+            filesDirectory.mkdir();
+
+            try {
+                File file1 = new File("files_directory/file1.txt");
+                File file2 = new File("files_directory/file2.txt");
+                File file3 = new File("files_directory/file3.txt");
+
+                file1.createNewFile();
+                file2.createNewFile();
+                file3.createNewFile();
+
+                FileWriter fileWriter1 = new FileWriter(file1);
+                FileWriter fileWriter2 = new FileWriter(file2);
+                FileWriter fileWriter3 = new FileWriter(file3);
+
+                fileWriter1.write("Hello World 1!");
+                fileWriter2.write("Hello World 2!");
+                fileWriter3.write("Hello World 3!");
+
+                fileWriter1.close();
+                fileWriter2.close();
+                fileWriter3.close();
+
+            } catch (IOException e) {
+                System.out.println("Error creating the files inside the directory. Exiting...");
+                SERVER_LOGGER.info("Error creating the files inside the directory. Exiting...");
+                System.exit(1);
+            }
         }
     }
 }

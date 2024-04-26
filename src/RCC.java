@@ -9,8 +9,8 @@ import java.util.logging.SimpleFormatter;
 
 
 public class RCC {
-    private static final Logger CLIENTE_LOGGER = Logger.getLogger("clientLogger");
-    private static final Scanner TECLADO = new Scanner(System.in);
+    private static final Logger CLIENT_LOGGER = Logger.getLogger("clientLogger");
+    private static final Scanner KEYBOARD = new Scanner(System.in);
 
     private static String clientMode;
     private static String serverIP;
@@ -26,86 +26,148 @@ public class RCC {
 
     }
 
-    private static void checkClientArgs(String[] argumentos) {
-        if (argumentos.length != 4) {
-            System.out.println("ERROR: Número de parámetros incorrecto");
-            System.out.println("Usa: java RCC <modo> <host> <puerto> <carpeta_cliente>");
+    /**
+     * Checks the arguments introduced by the user.
+     *
+     * @param arguments
+     */
+    private static void checkClientArgs(String[] arguments) {
+        if (arguments.length != 4) {
+            System.out.println("ERROR: Incorrect number of parameters.");
+            System.out.println("Use: java RCC <mode> <host> <port> <clients_folder>");
+            CLIENT_LOGGER.info("Incorrect number of parameters.");
             System.exit(1);
 
         }
         try {
-            clientMode = argumentos[0];
-            serverIP = argumentos[1];
-            serverPort = Integer.parseInt(argumentos[2]);
-            clientsFolder = argumentos[3];
+            clientMode = arguments[0];
+            serverIP = arguments[1];
+            serverPort = Integer.parseInt(arguments[2]);
+            clientsFolder = arguments[3];
 
 
-            System.out.println("Argumentos introducidos: " + Arrays.toString(argumentos));
+            System.out.println("Introduced arguments: " + Arrays.toString(arguments));
 
         } catch (Exception e) {
             System.out.println("Error en la asignación de argumentos");
-            System.out.println("Revisa el tipo de los argumentos y vuelve a intentarlo de nuevo.");
+            System.out.println("Error in the arguments assignation.");
+            System.out.println("Revise the arguments type and try again.");
+            System.out.println("Exiting...");
+            CLIENT_LOGGER.info("Error in the arguments assignation. Exiting...");
             System.exit(1);
         }
     }
 
     /**
-     * Inicia el proceso cliente.
+     * Starts the client.
      *
      * @param argumentos
      * @throws IOException
      */
     private static void startClient(String[] argumentos) throws IOException {
+        switch (clientMode){
+            case "normal":
+                runNormalClient();
+                break;
+
+            case "ssl":
+                runSSLClient();
+                break;
+
+            default:
+                System.out.println("ERROR: There are only these two modes: normal or ssl (lowercase)");
+                CLIENT_LOGGER.info("Error related with the mode entered by argument. Exiting...");
+                System.exit(1);
+        }
+
+
         System.out.println("Iniciando cliente...");
-        System.out.println("Dirección IP del servidor: " + serverIP);
-        System.out.println("Puerto del servidor: " + serverPort);
+
+    }
+
+    /**
+     * Runs a "normal" client
+     *
+     * @throws IOException
+     */
+    private static void runNormalClient() throws IOException {
+        System.out.println("Starting Normal Client...");
+        CLIENT_LOGGER.info("Starting Normal Client...");
+
+        System.out.println("Server IP: " + serverIP);
+        System.out.println("Server Port " + serverPort);
         Socket clientsocket = null;
 
         try {
-            //Creamos una conexión al servidor
-            clientsocket = new Socket(serverIP, serverPort);
-            System.out.print("Conexión con servidor " + argumentos[1] + " establecida.\n");
-            CLIENTE_LOGGER.info("Conexión con el servidor exitosa");
+            CLIENT_LOGGER.info("Starting client...");
 
-            // Aqui se ejecutaran cosas
+            // Create a connection with the server
+            clientsocket = new Socket(serverIP, serverPort);
+            System.out.print("Connection with the server " + serverIP + " established.\n");
+            CLIENT_LOGGER.info("Successfully connected to the server.");
+
+            runPetitions(clientsocket);
 
             clientsocket.close();
             System.out.println("Conexión al servidor cerrada");
-            CLIENTE_LOGGER.info("Connection with the server closed.");
+            CLIENT_LOGGER.info("Connection with the server closed.");
 
         } catch (IOException e) {
             System.out.println("Error al conectar con el servidor:");
-            CLIENTE_LOGGER.info("Error in the creations of the client's socket.");
+            CLIENT_LOGGER.info("Error in the creations of the client's socket.");
             System.exit(1);
         }
     }
 
+    /**
+     * Runs a "ssl" client
+     *
+     * @throws IOException
+     */
+    private static void runSSLClient() throws IOException {
+        System.out.println("Starting SSL Client...");
+        CLIENT_LOGGER.info("Starting SSL Client...");
+
+        System.out.println("Dirección IP del servidor: " + serverIP);
+        System.out.println("Puerto del servidor: " + serverPort);
+
+        // TO-DO
+    }
+
+
+    private static void runPetitions(Socket clientSocket) {
+        System.out.println("Introduce the petition you want to send to the server: ");
+        System.out.println("The available petitions are: ");
+        System.out.println("1. GET ");
+        String petition = KEYBOARD.nextLine();
+        System.out.println("Petition: " + petition);
+    }
 
     /**
-     * Inicia el logger del cliente.
+     * Initializes the logger for the client.
      */
     private static void startLogger() {
         try {
             checkLogsFolder();
 
             FileHandler fileHandler_RCC = new FileHandler("logs/RCC.log", 0, 1);
-            CLIENTE_LOGGER.addHandler(fileHandler_RCC);
+            CLIENT_LOGGER.addHandler(fileHandler_RCC);
             SimpleFormatter formatter_errors = new SimpleFormatter();
             fileHandler_RCC.setFormatter(formatter_errors);
-            CLIENTE_LOGGER.setUseParentHandlers(false);
+            CLIENT_LOGGER.setUseParentHandlers(false);
 
-            CLIENTE_LOGGER.info("Logger del cliente creado e inicializado");
+            CLIENT_LOGGER.info("Client's logger correctly created.");
 
         } catch (Exception e) {
-            System.out.println("Error en la creacion de CLIENT_LOGGER.");
+            System.out.println("Error in the creation of CLIENT_LOGGER.");
             System.exit(1);
         }
     }
 
     /**
-     * Comprueba que la carpeta existe, sino la crea.
+     * Checks if the "logs" folder exists, if not, then creates it.
      */
-    private static void checkLogsFolder() {  // check if logs folder exists, if not, create it
+    private static void checkLogsFolder() {
         File logsFolder = new File("logs");
 
         if (!logsFolder.exists()) {
@@ -113,6 +175,9 @@ public class RCC {
         }
     }
 
+    /**
+     * Checks that the "clients" folder exists, if not, then creates it.
+     */
     private static void checkClientsFolder() {
         File logsFolder = new File(clientsFolder);
 
