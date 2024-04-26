@@ -1,4 +1,5 @@
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
@@ -10,7 +11,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 import java.net.Socket;
-
 
 public class RCS {
     private static final Logger SERVER_LOGGER = Logger.getLogger("serverLogger");  // Creates the log files
@@ -24,12 +24,13 @@ public class RCS {
     public static void main(String[] args) throws IOException {
         checkServerArgs(args);
         startLogger();
+        checkFilesDirectory();
 
         startServer(args);
     }
 
     /**
-     * Comprueba que el numero de argumentos introducido es correcto.
+     * Check the arguments introduced by the user.
      *
      * @param argumentos
      */
@@ -57,7 +58,7 @@ public class RCS {
     }
 
     /**
-     * Inicia el modo servidor.
+     * Starts the server.
      *
      * @param argumentos
      */
@@ -84,19 +85,19 @@ public class RCS {
      * @throws IOException
      */
     private static void runNormalServer() throws IOException {
-        System.out.println("Iniciando Servidor...");
+        System.out.println("Starting Normal Server...");
 
         ServerSocket serverSocket = null;
 
         try {
             serverSocket = new ServerSocket(serverPort);
-            System.out.println("Socket servidor creado correctamente");
+            System.out.println("Server socket correctly created");
             SERVER_LOGGER.info("Server socket correctly created");
 
             obtainServerIpPort();
 
         } catch (Exception e) {
-            System.out.println("Error en la creación del socket servidor. Saliendo...");
+            System.out.println("Error in the creation of the server socket. Exiting...");
             SERVER_LOGGER.info("Error in the creation of the server socket. Exiting...");
             System.exit(1);
         }
@@ -106,10 +107,10 @@ public class RCS {
             Socket clientSocket = serverSocket.accept(); // Blocks the petition until a client connects.
             serverCurrentClients++; // Increases the variable by one every time a client is connected.
 
-            System.out.println("Cliente conectado desde " + clientSocket.getInetAddress().getHostAddress());
+            System.out.println("Cient connected from " + clientSocket.getInetAddress().getHostAddress());
             SERVER_LOGGER.info("Client connected from " + clientSocket.getInetAddress().getHostAddress());
 
-            // Crear y ejecutar un nuevo hilo para manejar al cliente
+            // Create and start a new thread for the client.
             ServerThread serverThread = new ServerThread(clientSocket);
             serverThread.start();
         }
@@ -121,7 +122,7 @@ public class RCS {
      * @throws IOException
      */
     private static void runSSLServer() throws IOException {
-        System.out.println("Iniciando Servidor...");
+        System.out.println("Starting SSL Server...");
 
         // TO-DO
 
@@ -177,6 +178,42 @@ public class RCS {
         } catch (Exception e) {
             System.out.println("Error al obtener la IP privada de este equipo. Saliendo...");
             SERVER_LOGGER.info("Error obtaining the private IP of the server. Exiting...");
+        }
+    }
+
+    // Check if "files_directory" directory exists, if not, create it and fill it with 3 files .txt with "Hello World!" inside.
+    private static void checkFilesDirectory() {
+        File filesDirectory = new File("server_files");
+
+        if (!filesDirectory.exists()) {
+            filesDirectory.mkdir();
+
+            try {
+                File file1 = new File("files_directory/file1.txt");
+                File file2 = new File("files_directory/file2.txt");
+                File file3 = new File("files_directory/file3.txt");
+
+                file1.createNewFile();
+                file2.createNewFile();
+                file3.createNewFile();
+
+                FileWriter fileWriter1 = new FileWriter(file1);
+                FileWriter fileWriter2 = new FileWriter(file2);
+                FileWriter fileWriter3 = new FileWriter(file3);
+
+                fileWriter1.write("Hello World 1!");
+                fileWriter2.write("Hello World 2!");
+                fileWriter3.write("Hello World 3!");
+
+                fileWriter1.close();
+                fileWriter2.close();
+                fileWriter3.close();
+
+            } catch (IOException e) {
+                System.out.println("Error creating the files inside the directory. Exiting...");
+                SERVER_LOGGER.info("Error creating the files inside the directory. Exiting...");
+                System.exit(1);
+            }
         }
     }
 }
