@@ -27,3 +27,8 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+### Project ###
+/logs/
+/server_files/
+/client_files/
