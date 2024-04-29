@@ -29,5 +29,6 @@ bin/
 .DS_Store
 
 ### Project ###
-logs/
-files_directory/
+/logs/
+/server_files/
+/client_files/
