@@ -1,7 +1,9 @@
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import javax.net.ssl.*;
+import java.io.*;
+import java.net.InetAddress;
 import java.net.ServerSocket;
+import java.security.*;
+import java.security.cert.CertificateException;
 import java.util.Arrays;
 import java.util.logging.FileHandler;
 import java.util.logging.Logger;
@@ -111,8 +113,70 @@ public class RCS {
      * Runs an SSL Server.
      */
     private static void runSSLServer() {
-        System.out.println("Starting SSL Server...");
-        // TO-DO
+
+        // Path and password of the server keyStore
+        String keyStorePath = "certs/serverKey.jks";
+        String keyStorePassword = "servpass";
+
+        // Path and password of the server trustedStore
+        String trustStorePath = "certs/ServerTrustedStore.jks";
+        String trustStorePassword = "servpass";
+
+        SSLServerSocket serverSocket = null;
+
+        try {
+            // Access to the keyStore
+            KeyStore keyStore = KeyStore.getInstance("JKS");
+            keyStore.load(new FileInputStream(keyStorePath), keyStorePassword.toCharArray());
+
+            // Access to the key manager
+            KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+            KeyManager[] keyManagers = kmf.getKeyManagers();
+
+            // Access to the trustedStore and trustManagers
+            KeyStore trustedStore = KeyStore.getInstance("JKS");
+            trustedStore.load(new FileInputStream(trustStorePath), trustStorePassword.toCharArray());
+            TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            tmf.init(trustedStore);
+            TrustManager[] trustManagers = tmf.getTrustManagers();
+
+
+            // Create the SSLContext
+            SSLContext sc = SSLContext.getInstance("SSL");
+            sc.init(keyManagers, trustManagers, null);
+
+            // Create the SSLServerSocketFactory
+            SSLServerSocketFactory ssf = sc.getServerSocketFactory();
+            serverSocket = (SSLServerSocket) ssf.createServerSocket(serverPort);
+
+            System.out.println("SSL Server correctly created");
+            SERVER_LOGGER.info("SSL Server correctly created");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        // Loop to accept clients while the number of clients is under the maximum specified.
+        while (serverCurrentClients <= serverMaxClients) {
+            SSLSocket clientSocket = null;
+
+            try {
+                clientSocket = (SSLSocket) serverSocket.accept(); // Blocks the petition until a client connects.
+                serverCurrentClients++;
+
+                System.out.println("Client connected from " + clientSocket.getInetAddress().getHostAddress());
+                SERVER_LOGGER.info("Client connected from " + clientSocket.getInetAddress().getHostAddress());
+
+                // Create and start a new thread for the client.
+                ServerThread serverThread = new ServerThread(clientSocket, SERVER_LOGGER, serverFilesDirectory);
+                serverThread.start();
+
+            } catch (Exception e) {
+                System.out.println("Error in the connection with the client. Exiting...");
+                SERVER_LOGGER.info("Error in the connection with the client. Exiting...");
+                System.exit(1);
+            }
+        }
     }
 
     /**
