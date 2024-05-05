@@ -125,28 +125,30 @@ public class RCS {
         SSLServerSocket serverSocket = null;
 
         try {
-            // Access to the keyStore
+            // Load server keyStore
             KeyStore keyStore = KeyStore.getInstance("JKS");
             keyStore.load(new FileInputStream(keyStorePath), keyStorePassword.toCharArray());
 
-            // Access to the key manager
-            KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            KeyManager[] keyManagers = kmf.getKeyManagers();
-
-            // Access to the trustedStore and trustManagers
+            // Load server trustedStore
             KeyStore trustedStore = KeyStore.getInstance("JKS");
             trustedStore.load(new FileInputStream(trustStorePath), trustStorePassword.toCharArray());
+
+            // Configure the trust manager to use the server's trustedStore
             TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
             tmf.init(trustedStore);
-            TrustManager[] trustManagers = tmf.getTrustManagers();
 
+            // Configure the key manager to use the server's keyStore
+            KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+            kmf.init(keyStore, keyStorePassword.toCharArray());
 
             // Create the SSLContext
             SSLContext sc = SSLContext.getInstance("SSL");
-            sc.init(keyManagers, trustManagers, null);
+            sc.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
 
             // Create the SSLServerSocketFactory
             SSLServerSocketFactory ssf = sc.getServerSocketFactory();
+
+            // Create the SSLServerSocket
             serverSocket = (SSLServerSocket) ssf.createServerSocket(serverPort);
 
             System.out.println("SSL Server correctly created");
@@ -160,16 +162,26 @@ public class RCS {
         while (serverCurrentClients <= serverMaxClients) {
             SSLSocket clientSocket = null;
 
+            System.out.println("Waiting for clients to connect...");
+
             try {
                 clientSocket = (SSLSocket) serverSocket.accept(); // Blocks the petition until a client connects.
+
                 serverCurrentClients++;
 
-                System.out.println("Client connected from " + clientSocket.getInetAddress().getHostAddress());
-                SERVER_LOGGER.info("Client connected from " + clientSocket.getInetAddress().getHostAddress());
 
-                // Create and start a new thread for the client.
+                // Obtain client's information
+                SSLSession sslSession = clientSocket.getSession();
+                String clientHost = sslSession.getPeerHost();
+                int clientPort = sslSession.getPeerPort();
+                System.out.println("Client connected from " + clientHost + ":" + clientPort);
+                SERVER_LOGGER.info("Client connected from " + clientHost + ":" + clientPort);
+
+                // Create a new thread for the client
                 ServerThread serverThread = new ServerThread(clientSocket, SERVER_LOGGER, serverFilesDirectory);
                 serverThread.start();
+                System.out.println("Thread started for client " + clientHost + ":" + clientPort);
+                SERVER_LOGGER.info("Thread started for client " + clientHost + ":" + clientPort);
 
             } catch (Exception e) {
                 System.out.println("Error in the connection with the client. Exiting...");

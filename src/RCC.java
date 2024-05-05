@@ -122,6 +122,20 @@ public class RCC {
      *
      */
     private static void runSSLClient() throws IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException {
+        // Path and password of the server keyStore
+        String keyStorePath = "certs/serverKey.jks";
+        String keyStorePassword = "servpass";
+
+        // Path and password of the server trustedStore
+        String trustStorePath = "certs/ServerTrustedStore.jks";
+        String trustStorePassword = "servpass";
+
+        SSLContext s
+
+
+
+
+
         String cacertsPath = "certs/cacerts";
 
         SSLSocket clientSocket;
@@ -163,8 +177,6 @@ public class RCC {
             e.printStackTrace();
 
         }
-
-
     }
 
     /**
