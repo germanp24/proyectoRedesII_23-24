@@ -1,11 +1,16 @@
+import javax.net.ssl.*;
 import java.io.*;
 import java.net.Socket;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Scanner;
 import java.util.logging.FileHandler;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
-
 
 public class RCC {
     private static final Logger CLIENT_LOGGER = Logger.getLogger("clientLogger");
@@ -18,7 +23,7 @@ public class RCC {
 
     private static final int BUFFER_SIZE = 1024;
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, CertificateException, KeyStoreException, NoSuchAlgorithmException {
         checkClientArgs(args);
         startLogger();
         checkClientsFolder();
@@ -65,7 +70,7 @@ public class RCC {
      *
      * @throws IOException Error in the creation of the client's socket.
      */
-    private static void startClient() throws IOException {
+    private static void startClient() throws IOException, CertificateException, KeyStoreException, NoSuchAlgorithmException {
         switch (clientMode){
             case "normal":
                 runNormalClient();
@@ -90,7 +95,7 @@ public class RCC {
         System.out.println("Starting Normal Client...");
         CLIENT_LOGGER.info("Starting Normal Client...");
 
-        Socket clientsocket = null;
+        Socket clientsocket;
 
         try {
             CLIENT_LOGGER.info("Starting client...");
@@ -115,15 +120,71 @@ public class RCC {
     /**
      * Runs a "ssl" client
      *
-     * @throws IOException
      */
-    private static void runSSLClient() throws IOException {
-        System.out.println("Starting SSL Client...");
-        CLIENT_LOGGER.info("Starting SSL Client...");
+    private static void runSSLClient() throws IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException {
+        // Path and password of the server keyStore
+        String keyStorePath = "certs/serverKey.jks";
+        String keyStorePassword = "servpass";
 
-        // TO-DO
+        // Path and password of the server trustedStore
+        String trustStorePath = "certs/ServerTrustedStore.jks";
+        String trustStorePassword = "servpass";
+
+        SSLContext s
+
+
+
+
+
+        String cacertsPath = "certs/cacerts";
+
+        SSLSocket clientSocket;
+
+        KeyStore trustedStore = KeyStore.getInstance("JKS");
+        trustedStore.load(new FileInputStream(cacertsPath), "changeit".toCharArray());
+
+        TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        tmf.init(trustedStore);
+        TrustManager[] trustManagers = tmf.getTrustManagers();
+
+        // Obtain and initialize a SSLContext
+        // Obtain an SSLSocketFactory and a client socket
+        try {
+            SSLContext sc = SSLContext.getInstance("SSL");
+            sc.init(null, trustManagers, null); // VERY IMPORTANT!!
+
+            SSLSocketFactory ssf = sc.getSocketFactory();
+            clientSocket = (SSLSocket) ssf.createSocket(serverIP, serverPort);
+
+            // Event to detect the handshake
+            clientSocket.addHandshakeCompletedListener(new HandshakeCompletedListener() {
+                @Override
+                public void handshakeCompleted(HandshakeCompletedEvent event) {
+                    X509Certificate cert;
+                    try {
+                        cert = (X509Certificate) event.getPeerCertificates()[0];
+                        String certName = cert.getSubjectX500Principal().getName().substring(3, cert.getSubjectX500Principal().getName().indexOf(","));
+                        System.out.println("Connected to the server with certificate: " + certName);
+                    } catch (SSLPeerUnverifiedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+            // Start the handshake - Negotiate the criptography
+            clientSocket.startHandshake();  // It doesn't block
+
+        } catch(Exception e) {
+            e.printStackTrace();
+
+        }
     }
 
+    /**
+     * Runs the petitions of the client.
+     *
+     * @param clientSocket The client's socket.
+     * @throws IOException Error in the sending of the petition.
+     */
     private static void runPetitions(Socket clientSocket) throws IOException {
 
         InputStream in = clientSocket.getInputStream();
@@ -181,6 +242,15 @@ public class RCC {
         }
     }
 
+    /**
+     * Lists the files in the server directory requested by the client.
+     *
+     * @param petition The petition received from the client.
+     * @param out The output stream to send the petition.
+     * @param in The input stream to receive the response.
+     * @param petitionTokens The tokens of the petition.
+     * @throws IOException Error in the sending of the petition.
+     */
     private static void ListPetition(String petition, OutputStream out, InputStream in, String[] petitionTokens) throws IOException {
         if (petitionTokens.length != 2) {
             System.out.println("ERROR: Incorrect number of parameters.");
