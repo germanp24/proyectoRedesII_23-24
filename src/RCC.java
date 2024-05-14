@@ -130,7 +130,7 @@ public class RCC {
         String trustStorePath = "certs/ServerTrustedStore.jks";
         String trustStorePassword = "servpass";
 
-        SSLContext s
+        // SSLContext s
 
 
 
@@ -260,7 +260,6 @@ public class RCC {
         }
 
         out.write(petition.getBytes());
-        System.out.println("Petition sent to the server.");
         CLIENT_LOGGER.info("Petition sent to the server.");
 
         byte[] buffer = new byte[BUFFER_SIZE];

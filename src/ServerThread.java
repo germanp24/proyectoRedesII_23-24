@@ -90,10 +90,7 @@ public class ServerThread extends Thread {
             try {
                 System.out.println("Sending list of files to the client");
                 ServerLogger.info("Sending list of files to the client");
-
-                out.write("Contents of the directory: ".getBytes());
                 out.write(filesList.toString().getBytes());
-                out.write("NULL".getBytes());
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
