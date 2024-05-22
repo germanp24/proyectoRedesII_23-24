@@ -1,15 +1,15 @@
 import javax.net.ssl.*;
 import java.io.*;
-import java.net.InetAddress;
-import java.net.ServerSocket;
+import java.net.*;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.security.*;
-import java.security.cert.CertificateException;
 import java.util.Arrays;
-import java.util.logging.FileHandler;
-import java.util.logging.Logger;
-import java.util.logging.SimpleFormatter;
-import java.net.Socket;
+import java.util.logging.*;
 
+/**
+ * RCS (Remote Command Server) is a server that allows clients to execute commands on the server's machine.
+ */
 public class RCS {
     private static final Logger SERVER_LOGGER = Logger.getLogger("serverLogger");  // Creates the log files
 
@@ -19,7 +19,12 @@ public class RCS {
     private static int serverCurrentClients;
     private static final String serverFilesDirectory = "server_files";
 
-    public static void main(String[] args) throws IOException {
+    /**
+     * Main method of the server.
+     *
+     * @param args Arguments introduced by the user.
+     */
+    public static void main(String[] args){
         checkServerArgs(args);
         startLogger();
         checkFilesDirectory();
@@ -33,8 +38,7 @@ public class RCS {
      */
     private static void checkServerArgs(String[] arguments) {
         if (arguments.length != 3) {
-            System.out.println("ERROR: Incorrect number of parameters.");
-            System.out.println("Use: java RCS <mode> <port> <max_clients>");
+            System.out.println("Incorrect number of parameters, use: java RCS <mode> <port> <max_clients>");
             System.exit(1);
         }
 
@@ -42,13 +46,10 @@ public class RCS {
             serverMode = arguments[0];
             serverPort = Integer.parseInt(arguments[1]);
             serverMaxClients = Integer.parseInt(arguments[2]);
-
-            System.out.println("Introduced arguments: " + Arrays.toString(arguments));
+            System.out.println("Arguments: " + Arrays.toString(arguments));
 
         } catch (Exception e) {
-            System.out.println("Error in the arguments assignation.");
-            System.out.println("Revise the type of arguments and try again.");
-            System.out.println("Exiting...");
+            System.out.println("Error in the arguments assignation. Exiting...");
             SERVER_LOGGER.info("Error in the arguments assignation. Exiting...");
             System.exit(1);
         }
@@ -57,7 +58,7 @@ public class RCS {
     /**
      * Starts the server.
      */
-    private static void startServer() throws IOException {
+    private static void startServer(){
         switch (serverMode) {
             case "normal":
                 runNormalServer();
@@ -68,20 +69,17 @@ public class RCS {
                 break;
 
             default:
-                System.out.println("ERROR: There are only these two modes: normal or ssl (lowercase)");
+                System.out.println("Error selecting modes, there are are only two: 'normal' or 'ssl' (lowercase)");
                 SERVER_LOGGER.info("Error related with the mode entered by argument. Exiting...");
                 System.exit(1);
         }
     }
 
     /**
-     * Runs a "normal" server
-     *
-     * @throws IOException If an error occurs in the creation of the server socket.
+     * Runs a "normal" server.
      */
-    private static void runNormalServer() throws IOException {
+    private static void runNormalServer(){
         System.out.println("Starting Normal Server...");
-
         ServerSocket serverSocket = null;
 
         try {
@@ -97,14 +95,24 @@ public class RCS {
 
         // Loop to accept clients while the number of clients is under the maximum specified.
         while (serverCurrentClients <= serverMaxClients) {
-            Socket clientSocket = serverSocket.accept(); // Blocks the petition until a client connects.
-            serverCurrentClients++; // Increases the variable by one every time a client is connected.
+            Socket clientSocket = null; // Blocks the petition until a client connects.
+
+            try {
+                clientSocket = serverSocket.accept();
+
+            } catch (IOException e) {
+                System.out.println("Error accepting the client connection.");
+                SERVER_LOGGER.info("Error accepting the client connection.");
+            }
 
             System.out.println("Client connected from " + clientSocket.getInetAddress().getHostAddress());
             SERVER_LOGGER.info("Client connected from " + clientSocket.getInetAddress().getHostAddress());
 
+            serverCurrentClients++; // Increases the variable by one every time a client is connected.
+            System.out.println("Current clients connected: " + serverCurrentClients);
+
             // Create and start a new thread for the client.
-            ServerThread serverThread = new ServerThread(clientSocket, SERVER_LOGGER, serverFilesDirectory);
+            ServerThread serverThread = new ServerThread(clientSocket, SERVER_LOGGER, serverFilesDirectory, serverCurrentClients);
             serverThread.start();
         }
     }
@@ -178,7 +186,7 @@ public class RCS {
                 SERVER_LOGGER.info("Client connected from " + clientHost + ":" + clientPort);
 
                 // Create a new thread for the client
-                ServerThread serverThread = new ServerThread(clientSocket, SERVER_LOGGER, serverFilesDirectory);
+                ServerThread serverThread = new ServerThread(clientSocket, SERVER_LOGGER, serverFilesDirectory, serverCurrentClients);
                 serverThread.start();
                 System.out.println("Thread started for client " + clientHost + ":" + clientPort);
                 SERVER_LOGGER.info("Thread started for client " + clientHost + ":" + clientPort);
@@ -228,15 +236,17 @@ public class RCS {
      * then creates it and fills it with 3 files .txt with "Hello World!" inside.
      */
     private static void checkFilesDirectory() {
-        File filesDirectory = new File(serverFilesDirectory);
+        File serverFilesDirectory = new File(RCS.serverFilesDirectory);
 
-        if (!filesDirectory.exists()) {
-            filesDirectory.mkdir();
+        // If the directory does not exist, then creates it and fills it with 3 files .txt with "Hello World!" inside.
+        if (!serverFilesDirectory.exists()) {
+            serverFilesDirectory.mkdir();
 
             try {
-                File file1 = new File(serverFilesDirectory + "/file1.txt");
-                File file2 = new File(serverFilesDirectory + "/file2.txt");
-                File file3 = new File(serverFilesDirectory + "/file3.txt");
+                // Create some files
+                File file1 = new File(RCS.serverFilesDirectory + "/file1.txt");
+                File file2 = new File(RCS.serverFilesDirectory + "/file2.txt");
+                File file3 = new File(RCS.serverFilesDirectory + "/file3.txt");
 
                 file1.createNewFile();
                 file2.createNewFile();
@@ -253,6 +263,20 @@ public class RCS {
                 fileWriter1.close();
                 fileWriter2.close();
                 fileWriter3.close();
+
+                //Create some directories
+                File dir1 = new File(RCS.serverFilesDirectory + "/dir1");
+                File dir2 = new File(RCS.serverFilesDirectory + "/dir2");
+
+                dir1.mkdir();
+                dir2.mkdir();
+
+                // Create one file on dir1
+                File file4 = new File(RCS.serverFilesDirectory + "/dir1/file4.txt");
+                file4.createNewFile();
+                FileWriter fileWriter4 = new FileWriter(file4);
+                fileWriter4.write("Hello World 4!");
+                fileWriter4.close();
 
             } catch (IOException e) {
                 System.out.println("Error creating the files inside the directory. Exiting...");

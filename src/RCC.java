@@ -1,11 +1,5 @@
-import javax.net.ssl.*;
 import java.io.*;
 import java.net.Socket;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Scanner;
 import java.util.logging.FileHandler;
@@ -20,18 +14,19 @@ public class RCC {
     private static String serverIP;
     private static int serverPort;
     private static String clientFolder;
+    private static Boolean infiniteLoopStatus = true;
 
     private static final int BUFFER_SIZE = 1024;
 
-    public static void main(String[] args) throws IOException, CertificateException, KeyStoreException, NoSuchAlgorithmException {
+    /**
+     * Main method of the client.
+     * @param args
+     */
+    public static void main(String[] args){
         checkClientArgs(args);
         startLogger();
-        checkClientsFolder();
-
+        checkFilesDirectory();
         startClient();
-
-        System.out.println("Terminating the client...");
-
     }
 
     /**
@@ -41,36 +36,28 @@ public class RCC {
      */
     private static void checkClientArgs(String[] arguments) {
         if (arguments.length != 4) {
-            System.out.println("ERROR: Incorrect number of parameters.");
-            System.out.println("Use: java RCC <mode> <host> <port> <clients_folder>");
-            CLIENT_LOGGER.info("Incorrect number of parameters.");
+            System.out.println("Incorrect number of parameters, use: java RCC <mode> <host> <port> <clients_folder>");
+            CLIENT_LOGGER.info("Incorrect number of parameters, use: java RCC <mode> <host> <port> <clients_folder>");
             System.exit(1);
-
         }
         try {
             clientMode = arguments[0];
             serverIP = arguments[1];
             serverPort = Integer.parseInt(arguments[2]);
             clientFolder = arguments[3];
-
-
             System.out.println("Introduced arguments: " + Arrays.toString(arguments));
 
         } catch (Exception e) {
-            System.out.println("Error in the arguments assignation.");
-            System.out.println("Revise the arguments type and try again.");
-            System.out.println("Exiting...");
-            CLIENT_LOGGER.info("Error in the arguments assignation. Exiting...");
+            System.out.println("Error in the arguments assignation, exiting...");
+            CLIENT_LOGGER.info("Error in the arguments assignation, exiting...");
             System.exit(1);
         }
     }
 
     /**
      * Starts the client.
-     *
-     * @throws IOException Error in the creation of the client's socket.
      */
-    private static void startClient() throws IOException, CertificateException, KeyStoreException, NoSuchAlgorithmException {
+    private static void startClient(){
         switch (clientMode){
             case "normal":
                 runNormalClient();
@@ -89,156 +76,98 @@ public class RCC {
 
     /**
      * Runs a "normal" client
-     *
      */
     private static void runNormalClient() {
         System.out.println("Starting Normal Client...");
         CLIENT_LOGGER.info("Starting Normal Client...");
 
-        Socket clientsocket;
+        Socket clientsocket = null;
+        CLIENT_LOGGER.info("Starting client...");
 
         try {
-            CLIENT_LOGGER.info("Starting client...");
-
             clientsocket = new Socket(serverIP,serverPort);
+            System.out.println("Successfully connected to the server.");
             CLIENT_LOGGER.info("Successfully connected to the server.");
-
-            runPetitions(clientsocket);
-
-            clientsocket.close();
-            System.out.println("Closed connection with the server.");
-            CLIENT_LOGGER.info("Closed connection with the server.");
-
 
         } catch (IOException e) {
             System.out.println("Error in the creations of the client's socket. Exiting...");
             CLIENT_LOGGER.info("Error in the creations of the client's socket.");
             System.exit(1);
         }
+
+        runPetitions(clientsocket);
+        try {
+            clientsocket.close();
+        } catch (IOException e) {
+            System.out.println("Error in the closing of the connection with the server.");
+            CLIENT_LOGGER.info("Error in the closing of the connection with the server.");
+        }
+
+        System.out.println("Closed connection with the server.");
+        CLIENT_LOGGER.info("Closed connection with the server.");
     }
 
     /**
-     * Runs a "ssl" client
-     *
+     * Runs the "SSL" client mode.
      */
-    private static void runSSLClient() throws IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException {
-        // Path and password of the server keyStore
-        String keyStorePath = "certs/serverKey.jks";
-        String keyStorePassword = "servpass";
-
-        // Path and password of the server trustedStore
-        String trustStorePath = "certs/ServerTrustedStore.jks";
-        String trustStorePassword = "servpass";
-
-        // SSLContext s
-
-
-
-
-
-        String cacertsPath = "certs/cacerts";
-
-        SSLSocket clientSocket;
-
-        KeyStore trustedStore = KeyStore.getInstance("JKS");
-        trustedStore.load(new FileInputStream(cacertsPath), "changeit".toCharArray());
-
-        TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-        tmf.init(trustedStore);
-        TrustManager[] trustManagers = tmf.getTrustManagers();
-
-        // Obtain and initialize a SSLContext
-        // Obtain an SSLSocketFactory and a client socket
-        try {
-            SSLContext sc = SSLContext.getInstance("SSL");
-            sc.init(null, trustManagers, null); // VERY IMPORTANT!!
-
-            SSLSocketFactory ssf = sc.getSocketFactory();
-            clientSocket = (SSLSocket) ssf.createSocket(serverIP, serverPort);
-
-            // Event to detect the handshake
-            clientSocket.addHandshakeCompletedListener(new HandshakeCompletedListener() {
-                @Override
-                public void handshakeCompleted(HandshakeCompletedEvent event) {
-                    X509Certificate cert;
-                    try {
-                        cert = (X509Certificate) event.getPeerCertificates()[0];
-                        String certName = cert.getSubjectX500Principal().getName().substring(3, cert.getSubjectX500Principal().getName().indexOf(","));
-                        System.out.println("Connected to the server with certificate: " + certName);
-                    } catch (SSLPeerUnverifiedException e) {
-                        e.printStackTrace();
-                    }
-                }
-            });
-            // Start the handshake - Negotiate the criptography
-            clientSocket.startHandshake();  // It doesn't block
-
-        } catch(Exception e) {
-            e.printStackTrace();
-
-        }
+    private static void runSSLClient(){
+        // TO-DO
     }
 
     /**
      * Runs the petitions of the client.
      *
      * @param clientSocket The client's socket.
-     * @throws IOException Error in the sending of the petition.
      */
-    private static void runPetitions(Socket clientSocket) throws IOException {
+    private static void runPetitions(Socket clientSocket){
 
-        InputStream in = clientSocket.getInputStream();
-        OutputStream out = clientSocket.getOutputStream();
-
-        System.out.println("Introduce the petition you want to send to the server: ");
-        System.out.println("The available petitions are: ");
-        System.out.println("1. LIST <remote_directory>");
-        System.out.println("2. SEND <local_file> <remote_directory>");
-        System.out.println("3. RECEIVE <remote_file> <local_directory>");
-        System.out.println("4. EXEC <command> <arguments>");
-        System.out.println("5. EXIT");
-
-        String petition = KEYBOARD.nextLine();
-
-        // If petition is a number end the method
-        if (petition.matches("[0-9]+")) {
-            System.out.println("Error: You have to type the name of the petition, not the index. Exiting...");
-            CLIENT_LOGGER.info("Error: You have to type the name of the petition, not the index. Exiting...");
-
-            return;
+        InputStream in = null;
+        OutputStream out = null;
+        try {
+            in = clientSocket.getInputStream();
+            out = clientSocket.getOutputStream();
+        } catch (IOException e) {
+            System.out.println("Error in the creation of the input and output streams. Exiting...");
+            CLIENT_LOGGER.info("Error in the creation of the input and output streams.");
         }
 
-        // Divide the petition in tokens
-        String[] petitionTokens = petition.split(" ");
+        while(infiniteLoopStatus) {
+            showOptions();
+            String petition = KEYBOARD.nextLine();
 
-        // Check the first token to know the petition
-        switch (petitionTokens[0]) {
-            case "LIST":
-                ListPetition(petition, out, in, petitionTokens);
+            if (petition.matches("[0-9]+")) {
+                System.out.println("Error: You have to type the name of the petition, not the index. Exiting...");
+                CLIENT_LOGGER.info("Error: You have to type the name of the petition, not the index. Exiting...");
                 break;
+            }
 
-            case "SEND":
-                SendPetition(petition, out, in, petitionTokens);
-                break;
+            String[] petitionTokens = petition.split(" ");
 
-            case "RECEIVE":
-                ReceivePetition(petition, out, in, petitionTokens);
-                break;
+            switch (petitionTokens[0]) {
+                case "LIST":
+                    ListPetition(petition, out, in, petitionTokens);
+                    break;
 
-            case "EXEC":
-                ExecPetition(petition, out, in, petitionTokens);
-                break;
+                case "SEND":
+                    SendPetition(petition, out, in, petitionTokens);
+                    break;
 
-            case "EXIT":
-                System.out.println("Exiting...");
-                CLIENT_LOGGER.info("Exiting...");
-                break;
-            default:
-                System.out.println("Petition not recognized.");
-                CLIENT_LOGGER.info("Petition not recognized.");
+                case "RECEIVE":
+                    ReceivePetition(petition, out, in, petitionTokens);
+                    break;
 
-                // TO-DO
-                break;
+                case "EXEC":
+                    ExecPetition(petition, out, in, petitionTokens);
+                    break;
+
+                case "EXIT":
+                    ExitPetition(petition, out, clientSocket);
+                    break;
+                default:
+                    System.out.println("Petition not recognized.");
+                    CLIENT_LOGGER.info("Petition not recognized.");
+                    break;
+            }
         }
     }
 
@@ -249,25 +178,37 @@ public class RCC {
      * @param out The output stream to send the petition.
      * @param in The input stream to receive the response.
      * @param petitionTokens The tokens of the petition.
-     * @throws IOException Error in the sending of the petition.
      */
-    private static void ListPetition(String petition, OutputStream out, InputStream in, String[] petitionTokens) throws IOException {
+    private static void ListPetition(String petition, OutputStream out, InputStream in, String[] petitionTokens) {
         if (petitionTokens.length != 2) {
-            System.out.println("ERROR: Incorrect number of parameters.");
-            System.out.println("Use: LIST <remote_directory>");
+            System.out.println("ERROR: Incorrect number of parameters, use: LIST <remote_directory>");
             CLIENT_LOGGER.info("Incorrect number of parameters.");
             return;
         }
 
-        out.write(petition.getBytes());
-        CLIENT_LOGGER.info("Petition sent to the server.");
+        try {
+            out.write(petition.getBytes());
+            System.out.println("Petition sent to the server.");
+            CLIENT_LOGGER.info("Petition sent to the server.");
+
+        } catch (IOException e) {
+            System.out.println("Error sending of the petition.");
+            CLIENT_LOGGER.info("Error sending of the petition.");
+        }
 
         byte[] buffer = new byte[BUFFER_SIZE];
-        int messageSize = in.read(buffer);
-        String response = new String(buffer, 0, messageSize);
+        int messageSize = 0;
 
+        try {
+            messageSize = in.read(buffer);
+            CLIENT_LOGGER.info("Response received from the server.");
+        } catch (IOException e) {
+            System.out.println("Error in the reception of the response.");
+            CLIENT_LOGGER.info("Error in the reception of the response.");
+        }
+
+        String response = new String(buffer, 0, messageSize);
         System.out.println(response);
-        CLIENT_LOGGER.info("Response from the server: " + response);
     }
 
     // MUST BE REVIEWED!!!
@@ -277,9 +218,8 @@ public class RCC {
      * @param out The output stream to send the petition.
      * @param in The input stream to receive the response.
      * @param petitionTokens The tokens of the petition.
-     * @throws IOException Error in the sending of the petition.
      */
-    private static void SendPetition(String petition, OutputStream out, InputStream in, String[] petitionTokens) throws IOException {
+    private static void SendPetition(String petition, OutputStream out, InputStream in, String[] petitionTokens) {
 //        //Creo el archivo que quiero enviar al servidor
 //        String fileName = userInput.readLine();
 //        File file = new File(fileName);
@@ -307,7 +247,6 @@ public class RCC {
      * @param out The output stream to send the petition.
      * @param in The input stream to receive the response.
      * @param petitionTokens The tokens of the petition.
-     * @throws IOException Error in the reception of the file.
      */
     private static void ReceivePetition(String petition, OutputStream out, InputStream in, String[] petitionTokens) {
         // Check the arguments length
@@ -365,6 +304,15 @@ public class RCC {
         // TO-DO
     }
 
+    private static void ExitPetition(String petition, OutputStream out, Socket clientSocket) {
+        try {
+            out.write(petition.getBytes());
+            infiniteLoopStatus = false;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     /**
      * Initializes the logger for the client.
      */
@@ -400,11 +348,23 @@ public class RCC {
     /**
      * Checks that the "clients" folder exists, if not, then creates it.
      */
-    private static void checkClientsFolder() {
+    private static void checkFilesDirectory() {
         File logsFolder = new File(clientFolder);
 
         if (!logsFolder.exists()) {
             logsFolder.mkdir();
         }
+    }
+
+    /**
+     * Shows the options available for the client.
+     */
+    private static void showOptions() {
+        System.out.println("The available petitions are: ");
+        System.out.println("1. LIST <remote_directory>");
+        System.out.println("2. SEND <local_file> <remote_directory>");
+        System.out.println("3. RECEIVE <remote_file> <local_directory>");
+        System.out.println("4. EXEC <command> <arguments>");
+        System.out.println("5. EXIT");
     }
 }
