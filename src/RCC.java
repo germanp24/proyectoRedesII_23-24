@@ -18,10 +18,6 @@ public class RCC {
 
     private static final int BUFFER_SIZE = 1024;
 
-    /**
-     * Main method of the client.
-     * @param args
-     */
     public static void main(String[] args){
         checkClientArgs(args);
         startLogger();

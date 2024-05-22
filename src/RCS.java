@@ -1,8 +1,6 @@
 import javax.net.ssl.*;
 import java.io.*;
 import java.net.*;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.security.*;
 import java.util.Arrays;
 import java.util.logging.*;
@@ -39,6 +37,13 @@ public class RCS {
     private static void checkServerArgs(String[] arguments) {
         if (arguments.length != 3) {
             System.out.println("Incorrect number of parameters, use: java RCS <mode> <port> <max_clients>");
+            System.exit(1);
+        }
+
+        // If argument 3 is less than 1, then exit.
+        if (Integer.parseInt(arguments[2]) < 1) {
+            System.out.println("The number of clients must be greater than 0. Exiting...");
+            SERVER_LOGGER.info("The number of clients must be greater than 0. Exiting...");
             System.exit(1);
         }
 
@@ -210,7 +215,7 @@ public class RCS {
             SERVER_LOGGER.addHandler(fileHandler_RCS);
             SimpleFormatter formatter_errors = new SimpleFormatter();
             fileHandler_RCS.setFormatter(formatter_errors);
-            SERVER_LOGGER.setUseParentHandlers(false); // Avoid to show the logs in the console
+            SERVER_LOGGER.setUseParentHandlers(false); // Avoid to show the logs in the console (?)
 
             SERVER_LOGGER.info("Logger of the server created and initialized.");
 
