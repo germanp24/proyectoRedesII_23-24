@@ -7,9 +7,9 @@ Este es el repositorio que contiene el proyecto de la asignatura Redes II (2023-
 ## Integrantes del Equipo ("Grupo 1")
 
 - Germán Pajarero
-- Houda el Ouahabi
+- Houda El Ouahabi
 - Oumaima Darkaoui
-- Zineb el ouaazizi
+- Zineb El Ouaazizi
 
 
 ## Table of Contents
