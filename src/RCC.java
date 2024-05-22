@@ -362,5 +362,6 @@ public class RCC {
         System.out.println("3. RECEIVE <remote_file> <local_directory>");
         System.out.println("4. EXEC <command> <arguments>");
         System.out.println("5. EXIT");
+        System.out.println("* Remember that '/' is the root of the remote storage.");
     }
 }

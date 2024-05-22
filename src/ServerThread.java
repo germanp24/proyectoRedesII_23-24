@@ -53,7 +53,8 @@ public class ServerThread extends Thread {
         try {
             messageSize = in.read(buffer);
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("Problem reading the petition from the client.");
+            ServerLogger.info("Problem reading the petition from the client.");
         }
 
         String petition = new String(buffer, 0, messageSize);
