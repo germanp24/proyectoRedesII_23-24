@@ -111,53 +111,53 @@ public class ServerThread extends Thread {
      * @param petitionTokens The tokens of the petition received from the client.
      */
     private static void ListPetition(String petition, OutputStream out, InputStream in, String[] petitionTokens) {
-    String directoryRequestedToList = petitionTokens[1];
+        String directoryRequestedToList = petitionTokens[1];
 
-    File completeServerDirectoryRequested = new File(serverFilesDirectory + directoryRequestedToList);
+        File completeServerDirectoryRequested = new File(serverFilesDirectory + directoryRequestedToList);
 
-    // If the directory does not exist, send an error message to the client. Otherwise, list the files and directories.
-    if (!completeServerDirectoryRequested.exists()) {
-        try {
-            out.write("Directory not found\n".getBytes());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    } else {
-        File[] files = completeServerDirectoryRequested.listFiles();
-        if (files != null) {
-            if (files.length == 0) {
-                // The directory is empty
-                try {
-                    out.write("The directory is empty\n".getBytes());
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            } else {
-                StringBuilder filesList = new StringBuilder();
-                for (File file : files) {
-                    if (file.isDirectory()) {
-                        filesList.append("[DIR]  ").append(file.getName()).append("\n");
-                    } else {
-                        filesList.append("[FILE] ").append(file.getName()).append("\n");
-                    }
-                }
-                try {
-                    System.out.println("Sending list of files and directories to the client");
-                    ServerLogger.info("Sending list of files and directories to the client");
-                    out.write(filesList.toString().getBytes());
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        } else {
+        // If the directory does not exist, send an error message to the client. Otherwise, list the files and directories.
+        if (!completeServerDirectoryRequested.exists()) {
             try {
-                out.write("Failed to list directory contents\n".getBytes());
+                out.write("Directory not found\n".getBytes());
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
+        } else {
+            File[] files = completeServerDirectoryRequested.listFiles();
+            if (files != null) {
+                if (files.length == 0) {
+                    // The directory is empty
+                    try {
+                        out.write("The directory is empty\n".getBytes());
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                } else {
+                    StringBuilder filesList = new StringBuilder();
+                    for (File file : files) {
+                        if (file.isDirectory()) {
+                            filesList.append("[DIR]  ").append(file.getName()).append("\n");
+                        } else {
+                            filesList.append("[FILE] ").append(file.getName()).append("\n");
+                        }
+                    }
+                    try {
+                        System.out.println("Sending list of files and directories to the client");
+                        ServerLogger.info("Sending list of files and directories to the client");
+                        out.write(filesList.toString().getBytes());
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            } else {
+                try {
+                    out.write("Failed to list directory contents\n".getBytes());
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
         }
     }
-}
 
     /**
      * Sends a file to the client.
@@ -168,7 +168,47 @@ public class ServerThread extends Thread {
      * @param petitionTokens The tokens of the petition received from the client.
      */
     private static void SendPetition(String petition, OutputStream out, InputStream in, String[] petitionTokens) {
-        // TO-DO
+        String remoteDirectoryAskedToCheck = petitionTokens[2];
+
+        // Check if the directory exists, and if is a directory
+        File remoteDirectory = new File(serverFilesDirectory + remoteDirectoryAskedToCheck);
+        if (!remoteDirectory.exists() || !remoteDirectory.isDirectory()) {
+            try {
+                out.write("ERROR".getBytes());
+                ServerLogger.info("The directory requested doesn't exist in the server.");
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            return;
+        } else {
+            try {
+                out.write("OK".getBytes());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        // Receive the file from the client
+        String fileName = petitionTokens[1];
+        String filePath = serverFilesDirectory + remoteDirectoryAskedToCheck + File.separator + fileName;
+        try (FileOutputStream fileOutputStream = new FileOutputStream(filePath)) {
+            byte[] fileBuffer = new byte[BUFFER_SIZE];
+            int bytesRead;
+            
+            while ((bytesRead = in.read(fileBuffer)) != -1) {
+                fileOutputStream.write(fileBuffer, 0, bytesRead);
+            }
+            
+            System.out.println("File received successfully.");
+            ServerLogger.info("File received successfully.");
+            
+            // Envía una confirmación al cliente de que el archivo se ha recibido correctamente
+            out.write("File received successfully.".getBytes());
+        } catch (IOException e) {
+            System.out.println("ERROR: An error occurred while receiving the file from the client.");
+            ServerLogger.info("An error occurred while receiving the file from the client.");
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -179,54 +219,46 @@ public class ServerThread extends Thread {
      * @param in       The input stream to receive data from the client.
      * @param petitionTokens The tokens of the petition received from the client.
      */
-    private static void ReceivePetition(String petition, OutputStream out, InputStream in, String[] petitionTokens){
-        try {
-            System.out.println("Client" + threadSocket.getInetAddress() + " requested a RECEIVE petition");
-            ServerLogger.info("Client" + threadSocket.getInetAddress() + " requested a RECEIVE petition");
+    private static void ReceivePetition(String petition, OutputStream out, InputStream in, String[] petitionTokens) {
+        String fileName = petitionTokens[1];
+        String filePath = serverFilesDirectory + fileName;
 
-            String filePathRequested = petitionTokens[1];
-            String clientDirectory = petitionTokens[2];
-
-            String fullFilePath = serverFilesDirectory + filePathRequested;
-
-            // Check if the file exists
-            File file = new File(fullFilePath);
-            if (!file.exists() || !file.isFile()) {
-                out.write("ERROR: The file requested doesn't exist in the server.".getBytes());
+        // Check if the file exists in the server
+        File file = new File(filePath);
+        if (!file.exists()) {
+            try {
+                out.write("ERROR".getBytes());
                 ServerLogger.info("The file requested doesn't exist in the server.");
-
-                return;
-            }
-
-            long fileSize = file.length();
-            out.write(Long.toString(fileSize).getBytes());
-            out.write("\n".getBytes()); // Separator between the file size and the file data
-
-            // Send the file to the client
-            try (FileInputStream fileInputStream = new FileInputStream(file);
-                 BufferedInputStream bufferedInputStream = new BufferedInputStream(fileInputStream)) {
-
-                byte[] buffer = new byte[BUFFER_SIZE];
-                int bytesRead;
-
-                while ((bytesRead = bufferedInputStream.read(buffer)) != -1) {
-                    out.write(buffer, 0, bytesRead);
-                }
-
-                System.out.println("File sent to the client.");
             } catch (IOException e) {
-                try {
-                    out.write("Error trying to send the file to the client".getBytes());
-                    ServerLogger.info("Error trying to send the file to the client.");
-                } catch (IOException ex) {
-                    throw new RuntimeException(ex);
-                }
                 throw new RuntimeException(e);
             }
+            return;
+        } else {
+            try {
+                out.write("OK".getBytes());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        // Send the file to the client
+        try (FileInputStream fileInputStream = new FileInputStream(filePath)) {
+            byte[] fileBuffer = new byte[BUFFER_SIZE];
+            int bytesRead;
+            
+            while ((bytesRead = fileInputStream.read(fileBuffer)) != -1) {
+                out.write(fileBuffer, 0, bytesRead);
+            }
+            
+            System.out.println("File sent successfully.");
+            ServerLogger.info("File sent successfully.");
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            System.out.println("ERROR: An error occurred while sending the file to the client.");
+            ServerLogger.info("An error occurred while sending the file to the client.");
+            e.printStackTrace();
         }
     }
+    
 
     /**
      * Executes a command in the server.
@@ -239,6 +271,7 @@ public class ServerThread extends Thread {
     private static void ExecPetition(String petition, OutputStream out, InputStream in, String[] petitionTokens) {
         // TO-DO
     }
+    
 
     /**
      * Closes the connection with the client.

@@ -1,10 +1,13 @@
 import java.io.*;
 import java.net.Socket;
+import java.security.KeyStore;
 import java.util.Arrays;
 import java.util.Scanner;
 import java.util.logging.FileHandler;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
+
+import javax.net.ssl.*;
 
 public class RCC {
     private static final Logger CLIENT_LOGGER = Logger.getLogger("clientLogger");
@@ -64,7 +67,7 @@ public class RCC {
                 break;
 
             default:
-                System.out.println("ERROR: There are only these two modes: normal or ssl (lowercase). Exiting...");
+                System.out.println("ERROR: There are only these two modes: 'normal' or 'ssl' (lowercase). Exiting...");
                 CLIENT_LOGGER.info("Error related with the mode entered by argument. Exiting...");
                 System.exit(1);
         }
@@ -92,6 +95,8 @@ public class RCC {
         }
 
         runPetitions(clientsocket);
+
+        // This block of code is executed when the client chooses "EXIT".
         try {
             clientsocket.close();
         } catch (IOException e) {
@@ -107,7 +112,45 @@ public class RCC {
      * Runs the "SSL" client mode.
      */
     private static void runSSLClient(){
-        // TO-DO
+        System.out.println("Starting SSL Client...");
+        CLIENT_LOGGER.info("Starting SSL Client...");
+
+        // Set the trustStore property
+        System.setProperty("javax.net.ssl.trustStore", "certs/cacerts");
+        System.setProperty("javax.net.ssl.trustStorePassword", "changeit");
+
+        try {
+            // Load the trustStore
+            KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
+            try (FileInputStream trustStoreStream = new FileInputStream("certs/cacerts")) {
+                trustStore.load(trustStoreStream, "changeit".toCharArray());
+            }
+
+            // Create a TrustManager that trusts the CAs in our trustStore
+            TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            tmf.init(trustStore);
+
+            // Initialize SSLContext with our TrustManagers
+            SSLContext sslContext = SSLContext.getInstance("SSL");
+            sslContext.init(null, tmf.getTrustManagers(), new java.security.SecureRandom());
+
+            // Get SSLSocketFactory from the SSLContext
+            SSLSocketFactory factory = sslContext.getSocketFactory();
+            SSLSocket clientSocket = (SSLSocket) factory.createSocket(serverIP, serverPort);
+
+            // Add a Handshake Listener to debug handshake process
+            clientSocket.addHandshakeCompletedListener(event -> {
+                System.out.println("Handshake successful!");
+            });
+
+            clientSocket.startHandshake();  // Start the handshake with the server
+
+        } catch (SSLHandshakeException e) {
+            System.err.println("Handshake failed!");
+            e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -129,7 +172,14 @@ public class RCC {
 
         while(infiniteLoopStatus) {
             showOptions();
-            String petition = KEYBOARD.nextLine();
+            String petition = "";
+            try {
+                petition = KEYBOARD.nextLine();
+                
+            } catch (Exception e) {
+                System.out.println("Error in the reading of the petition. Exiting...");
+                CLIENT_LOGGER.info("Error in the reading of the petition.");
+            }
 
             if (petition.matches("[0-9]+")) {
                 System.out.println("Error: You have to type the name of the petition, not the index. Exiting...");
@@ -203,12 +253,17 @@ public class RCC {
             CLIENT_LOGGER.info("Error in the reception of the response.");
         }
 
-        String response = new String(buffer, 0, messageSize);
-        System.out.println(response);
+        try {
+            String response = new String(buffer, 0, messageSize);
+            System.out.println(response);
+        } catch (Exception e) {
+            System.out.println("Error in the conversion of the response.");
+            CLIENT_LOGGER.info("Error in the conversion of the response.");
+        }
     }
 
-    // MUST BE REVIEWED!!!
-    /** Sends a petition to the server.
+    /**
+     * Sends a petition to the server.
      *
      * @param petition The petition to be sent.
      * @param out The output stream to send the petition.
@@ -216,24 +271,80 @@ public class RCC {
      * @param petitionTokens The tokens of the petition.
      */
     private static void SendPetition(String petition, OutputStream out, InputStream in, String[] petitionTokens) {
-//        //Creo el archivo que quiero enviar al servidor
-//        String fileName = userInput.readLine();
-//        File file = new File(fileName);
-//        byte[] buffer = new byte[(int) file.length()];//guardar los datos del archivo y enviarlos al servidor
-//        FileInputStream fileInputStream = new FileInputStream(file);//leer los datos
-//        OutputStream outputStream = clientsocket.getOutputStream();//envair los datos
-//        int bytesRead;
-//
-//        //se ejecuta mientras haya datos para leer del archivo
-//        //lee los datos del archivo y devuelve los bytes leídos
-//        //devuelve -1 cuano no hay datos para leer
-//        while((bytesRead = fileInputStream.read(buffer)) != -1){
-//            outputStream.write(buffer,0, bytesRead);//el 0 indica que empezamos la escritura desde el inicio del buffer
-//        }
-//
-//        outputStream.close();
-//        fileInputStream.close();
-//        System.out.println("Archivo enviado: " + fileName);
+        // Check the arguments length
+        if (petitionTokens.length != 3) {
+            System.out.println("ERROR: Incorrect number of parameters.");
+            System.out.println("Use: SEND <local_file> <remote_directory>");
+            CLIENT_LOGGER.info("Incorrect number of parameters.");
+            return;
+        }
+
+        // Check if the file exist or is a directory
+        String localFilePath = clientFolder + "/" + petitionTokens[1];
+        File localFile = new File(localFilePath);
+        if (!localFile.exists() || localFile.isDirectory()) {
+            System.out.println("ERROR: The file does not exist or is a directory.");
+            CLIENT_LOGGER.info("The file does not exist or is a directory.");
+            return;
+        }
+
+        // Check if the remote directory exists
+        // Send the remote directory, it will check if it exists and respond with the status
+        try {
+            out.write(petition.getBytes());
+        } catch (Exception e) {
+            System.out.println("ERROR: An error occurred while sending the remote directory for checking.");
+            CLIENT_LOGGER.info("An error occurred while sending the remote directory for checking.");
+            e.printStackTrace();
+        }
+
+        // Receive the response from the server, print an error if the directory if the received response is not "OK"
+        byte[] buffer = new byte[BUFFER_SIZE];
+        int messageSize = 0;
+        try {
+            messageSize = in.read(buffer);
+        } catch (IOException e) {
+            System.out.println("ERROR: An error occurred while receiving the response from the server.");
+            CLIENT_LOGGER.info("An error occurred while receiving the response from the server.");
+            e.printStackTrace();
+        }
+
+        String response = new String(buffer, 0, messageSize);
+        if (!response.equals("OK")) {
+            System.out.println("ERROR: The remote directory does not exist.");
+            CLIENT_LOGGER.info("The remote directory does not exist.");
+            return;
+        }
+
+        // Send the file to the server
+        try (FileInputStream fileInputStream = new FileInputStream(localFile)) {
+            byte[] fileBuffer = new byte[BUFFER_SIZE];
+            int bytesRead;
+            
+            while ((bytesRead = fileInputStream.read(fileBuffer)) != -1) {
+                out.write(fileBuffer, 0, bytesRead);
+            }
+            out.flush();
+            
+            System.out.println("File sent successfully.");
+            CLIENT_LOGGER.info("File sent successfully.");
+        } catch (IOException e) {
+            System.out.println("ERROR: An error occurred while sending the file to the server.");
+            CLIENT_LOGGER.info("An error occurred while sending the file to the server.");
+            e.printStackTrace();
+        }
+
+        // Receive the response from the server and print it
+        try {
+            messageSize = in.read(buffer);
+        } catch (IOException e) {
+            System.out.println("ERROR: An error occurred while receiving the response from the server.");
+            CLIENT_LOGGER.info("An error occurred while receiving the response from the server.");
+            e.printStackTrace();
+        }
+
+        response = new String(buffer, 0, messageSize);
+        System.out.println(response);
     }
 
     /**
@@ -245,6 +356,11 @@ public class RCC {
      * @param petitionTokens The tokens of the petition.
      */
     private static void ReceivePetition(String petition, OutputStream out, InputStream in, String[] petitionTokens) {
+        // Save the filename in a variable, i have to cut the petitionTokens[1] and get only the last word
+        String[] remoteFileTokens = petitionTokens[1].split("/");
+        // Get the last word
+        String remoteFileName = remoteFileTokens[remoteFileTokens.length - 1];
+
         // Check the arguments length
         if (petitionTokens.length != 3) {
             System.out.println("ERROR: Incorrect number of parameters.");
@@ -253,37 +369,53 @@ public class RCC {
             return;
         }
 
+        // Check if the remote file exists
         try {
             out.write(petition.getBytes());
-            System.out.println("Petition sent to the server.");
-            CLIENT_LOGGER.info("Petition sent to the server.");
+        } catch (IOException e) {
+            System.out.println("ERROR: An error occurred while sending the remote file to the server.");
+            CLIENT_LOGGER.info("An error occurred while sending the remote file to the server.");
+            e.printStackTrace();
+            return;
+        }
 
-            // Receive the file from the server
-            String localDirectory = petitionTokens[2];
-            File localFile = new File(localDirectory + "/" + petitionTokens[1]);
+        // Receive the response from the server, print an error if the file does not exist
+        byte[] buffer = new byte[BUFFER_SIZE];
+        int messageSize;
+        try {
+            messageSize = in.read(buffer);
+        } catch (IOException e) {
+            System.out.println("ERROR: An error occurred while receiving the response from the server.");
+            CLIENT_LOGGER.info("An error occurred while receiving the response from the server.");
+            e.printStackTrace();
+            return;
+        }
 
-            FileOutputStream fileOutputStream = new FileOutputStream(localFile);
-            byte[] buffer = new byte[BUFFER_SIZE];
+        String response = new String(buffer, 0, messageSize);
+        if (response.equals("ERROR")) {
+            System.out.println("ERROR: The remote file does not exist.");
+            CLIENT_LOGGER.info("The remote file does not exist.");
+            return;
+        }
+        else {
+            System.out.println("The remote file exists.");
+            CLIENT_LOGGER.info("The remote file exists.");
+        }
+  
+        // Recibe el archivo del servidor
+        try (FileOutputStream fileOutputStream = new FileOutputStream(clientFolder+"/"+remoteFileName)) {
+            byte[] fileBuffer = new byte[BUFFER_SIZE];
+            int bytesRead;
 
-            // Read the file size
-            byte[] fileSizeBuffer = new byte[Long.BYTES];
-            in.read(fileSizeBuffer);
-            long fileSize = Long.parseLong(new String(fileSizeBuffer).trim());
-
-            // Receive the file from the server
-            long totalBytesRead = 0;
-            while (totalBytesRead < fileSize) {
-                int bytesRead = in.read(buffer);
-                fileOutputStream.write(buffer, 0, bytesRead);
-                totalBytesRead += bytesRead;
+            while ((bytesRead = in.read(fileBuffer)) != -1) {
+                fileOutputStream.write(fileBuffer, 0, bytesRead);
             }
 
-            fileOutputStream.close();
             System.out.println("File received successfully.");
             CLIENT_LOGGER.info("File received successfully.");
         } catch (IOException e) {
-            System.out.println("ERROR: An error occurred while receiving the file.");
-            CLIENT_LOGGER.info("An error occurred while receiving the file.");
+            System.out.println("ERROR: An error occurred while receiving the file from the server.");
+            CLIENT_LOGGER.info("An error occurred while receiving the file from the server.");
             e.printStackTrace();
         }
     }
@@ -349,6 +481,17 @@ public class RCC {
 
         if (!logsFolder.exists()) {
             logsFolder.mkdir();
+        }
+
+        // Create a file and write something in it
+        File file = new File(clientFolder + "/test.txt");
+        try {
+            FileWriter fileWriter = new FileWriter(file);
+            fileWriter.write("This is a test file.");
+            fileWriter.close();
+        } catch (IOException e) {
+            System.out.println("Error in the creation of the test file.");
+            CLIENT_LOGGER.info("Error in the creation of the test file.");
         }
     }
 
