@@ -16,7 +16,7 @@
             "request": "launch",
             "mainClass": "RCC",
             "projectName": "proyectoRedesII_23-24_f35b018a",
-            "args": ["normal", "127.0.0.1", "8008", "clientsFolder"]
+            "args": ["ssl", "127.0.0.1", "8008", "clientsFolder"]
         },
         {
             "type": "java",
@@ -24,7 +24,7 @@
             "request": "launch",
             "mainClass": "RCS",
             "projectName": "proyectoRedesII_23-24_f35b018a",
-            "args": ["normal", "8008", "2"]
+            "args": ["ssl", "8008", "2"]
         }
     ]
 }

@@ -1,6 +1,8 @@
 import java.io.*;
 import java.net.Socket;
+import java.security.Key;
 import java.security.KeyStore;
+import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Scanner;
 import java.util.logging.FileHandler;
@@ -18,6 +20,7 @@ public class RCC {
     private static int serverPort;
     private static String clientFolder;
     private static Boolean infiniteLoopStatus = true;
+    private static String trustedStorePath = "certs/cacerts";
 
     private static final int BUFFER_SIZE = 1024;
 
@@ -115,42 +118,62 @@ public class RCC {
         System.out.println("Starting SSL Client...");
         CLIENT_LOGGER.info("Starting SSL Client...");
 
-        // Set the trustStore property
-        System.setProperty("javax.net.ssl.trustStore", "certs/cacerts");
-        System.setProperty("javax.net.ssl.trustStorePassword", "changeit");
+        SSLSocket clientSocket = null;
 
         try {
-            // Load the trustStore
-            KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
-            try (FileInputStream trustStoreStream = new FileInputStream("certs/cacerts")) {
-                trustStore.load(trustStoreStream, "changeit".toCharArray());
-            }
+            // Access to the trusted store "cacerts" with password "changeit"
+            KeyStore trustedStore = KeyStore.getInstance("JKS");
+            trustedStore.load(new FileInputStream(trustedStorePath), "changeit".toCharArray());
 
-            // Create a TrustManager that trusts the CAs in our trustStore
             TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-            tmf.init(trustStore);
+            tmf.init(trustedStore);
+            TrustManager[] trustManagers = tmf.getTrustManagers();
 
-            // Initialize SSLContext with our TrustManagers
-            SSLContext sslContext = SSLContext.getInstance("SSL");
-            sslContext.init(null, tmf.getTrustManagers(), new java.security.SecureRandom());
+            // Get and initialize an SSL context
+            // Get an SSL socket factory and a client socket
+            SSLContext sc = SSLContext.getInstance("SSL");
+            sc.init(null, trustManagers, null); // This line is key
 
-            // Get SSLSocketFactory from the SSLContext
-            SSLSocketFactory factory = sslContext.getSocketFactory();
-            SSLSocket clientSocket = (SSLSocket) factory.createSocket(serverIP, serverPort);
+            SSLSocketFactory ssf = sc.getSocketFactory();
+            clientSocket = (SSLSocket) ssf.createSocket(serverIP, serverPort); // To which server I am going to connect!
 
-            // Add a Handshake Listener to debug handshake process
-            clientSocket.addHandshakeCompletedListener(event -> {
-                System.out.println("Handshake successful!");
+            // Add an event to detect the handshake!
+            clientSocket.addHandshakeCompletedListener(new HandshakeCompletedListener() {
+                @Override
+                public void handshakeCompleted(HandshakeCompletedEvent event) {
+                    X509Certificate cert;
+                    try {
+                        cert = (X509Certificate) event.getPeerCertificates()[0];
+                        String certName = cert.getSubjectX500Principal().getName().substring(3, cert.getSubjectX500Principal().getName().indexOf(","));
+                        System.out.println("Connected to the server with certificate name: " + certName);
+                        CLIENT_LOGGER.info("Connected to the server with certificate name: " + certName);
+                    } catch (SSLPeerUnverifiedException e) {
+                        e.printStackTrace();
+                    }
+                }
             });
 
-            clientSocket.startHandshake();  // Start the handshake with the server
+            // Launch the SSL handshake -> negotiate the cryptography
+            clientSocket.startHandshake(); // DOES NOT BLOCK
 
-        } catch (SSLHandshakeException e) {
-            System.err.println("Handshake failed!");
-            e.printStackTrace();
-        } catch (Exception e) {
-            e.printStackTrace();
+            runPetitions(clientSocket);
+
+            // This block of code is executed when the client chooses "EXIT".
+            try {
+                clientSocket.close();
+            } catch (IOException e) {
+                System.out.println("Error in the closing of the connection with the server.");
+                CLIENT_LOGGER.info("Error in the closing of the connection with the server.");
+            }
+    
+            System.out.println("Closed connection with the server.");
+            CLIENT_LOGGER.info("Closed connection with the server.");
+
+        } catch(Exception e) {
+            
         }
+
+
     }
 
     /**

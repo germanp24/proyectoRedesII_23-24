@@ -16,7 +16,7 @@ public class RCS {
     private static int serverMaxClients;
     private static int serverCurrentClients;
     private static final String serverFilesDirectory = "server_files";
-    private static String serverKeyStorePath = "./certs/serverKey.jks";
+    private static String serverKeyStorePath = "./certs/laptop_german/serverKey.jks";
 
     /**
      * Main method of the server.
@@ -128,55 +128,57 @@ public class RCS {
      */
     private static void runSSLServer() {
         System.out.println("Starting SSL Server...");
-        
-        SSLServerSocket serverSocket = null;
 
+        SSLServerSocket serverSocket = null;
+        
         try {
+            // Access to the key store
+            KeyStore keyStore = KeyStore.getInstance("JKS");
+            keyStore.load(new FileInputStream(serverKeyStorePath), "servpass".toCharArray());
+
+            //Acceso a las claves del almacén
+            KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+            kmf.init(keyStore, "servpass".toCharArray());
+            KeyManager[] keyManagers = kmf.getKeyManagers();
+
+            //Conseguir una factoría de sockets y un ServerSocket
             try {
-                // Load the keystore
-                KeyStore keyStore = KeyStore.getInstance("JKS");
-                keyStore.load(new FileInputStream(serverKeyStorePath), "servpass".toCharArray());
-                
-                KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance("SunX509");
-                keyManagerFactory.init(keyStore, "servpass".toCharArray());
-                
-                SSLContext sslContext = SSLContext.getInstance("TLS");
-                sslContext.init(keyManagerFactory.getKeyManagers(), null, null);
+                SSLContext sc = SSLContext.getInstance("SSL");
+                sc.init(keyManagers, null, null);
+                SSLServerSocketFactory ssf = sc.getServerSocketFactory();
+                serverSocket = (SSLServerSocket) ssf.createServerSocket(serverPort);
+                System.out.println("servidor arrancado...");
             } catch (Exception e) {
                 e.printStackTrace();
             }
-
-            SSLServerSocketFactory factory = (SSLServerSocketFactory) SSLServerSocketFactory.getDefault();
-            serverSocket = (SSLServerSocket) factory.createServerSocket(serverPort);
-
-        } catch (IOException e) {
-            System.out.println("Error in the creation of the SSL server socket. Exiting...");
-            SERVER_LOGGER.info("Error in the creation of the SSL server socket. Exiting...");
+        } catch(Exception e) {
+            System.out.println("Error in the creation of the server socket. Exiting...");
+            SERVER_LOGGER.info("Error in the creation of the server socket. Exiting...");
+            System.exit(1);
         }
 
+        // Loop to accept clients while the number of clients is under the maximum specified.
+        while (serverCurrentClients <= serverMaxClients) {
+            SSLSocket clientSocket = null;
 
-        while(serverCurrentClients <= serverMaxClients) {
             try {
-                System.out.println("Server started at ip " + InetAddress.getLocalHost().getHostAddress() + " and port " + serverPort);
-                System.out.println("Waiting for a client connection (SSL)...");
-                SSLSocket clientSocket = (SSLSocket) serverSocket.accept();
-                clientSocket.startHandshake();  // Start the handshake
-                System.out.println("Client connected from " + clientSocket.getInetAddress().getHostAddress());
-                SERVER_LOGGER.info("Client connected from " + clientSocket.getInetAddress().getHostAddress());
-                
-                serverCurrentClients++;
-                System.out.println("Current clients connected: " + serverCurrentClients);
+                clientSocket = (SSLSocket) serverSocket.accept();
 
-                // Create and start a new thread for the client.
-                ServerThread serverThread = new ServerThread(clientSocket, SERVER_LOGGER, serverFilesDirectory, serverCurrentClients);
-                serverThread.start();
-
-            } catch (Exception e) {
-                System.out.println("Error accepting the client connection (SSL).");
-                SERVER_LOGGER.info("Error accepting the client connection. (SSL)");
+            } catch (IOException e) {
+                System.out.println("Error accepting the client connection.");
+                SERVER_LOGGER.info("Error accepting the client connection.");
             }
-        }
 
+            System.out.println("Client connected from " + clientSocket.getInetAddress().getHostAddress());
+            SERVER_LOGGER.info("Client connected from " + clientSocket.getInetAddress().getHostAddress());
+
+            serverCurrentClients++; // Increases the variable by one every time a client is connected.
+            System.out.println("Current clients connected: " + serverCurrentClients);
+
+            // Create and start a new thread for the client.
+            ServerThread serverThread = new ServerThread(clientSocket, SERVER_LOGGER, serverFilesDirectory, serverCurrentClients);
+            serverThread.start();
+        }
         
     }
 
