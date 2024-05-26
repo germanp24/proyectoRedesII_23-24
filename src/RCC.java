@@ -343,14 +343,18 @@ public class RCC {
         }
 
         // Send the file to the server
-        try (FileInputStream fileInputStream = new FileInputStream(localFile)) {
-            byte[] fileBuffer = new byte[BUFFER_SIZE];
-            int bytesRead = 0;
+        try {
+            FileInputStream fileInputStream = new FileInputStream(localFile);
+            BufferedInputStream bufferedInputStream = new BufferedInputStream(fileInputStream);
+            BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(out);
+
+            byte[] fileBuffer = new byte[4096];
+            int bytesRead;
             
-            while ((bytesRead = fileInputStream.read(fileBuffer)) != -1) {
-                out.write(fileBuffer, 0, bytesRead);
+            while ((bytesRead = bufferedInputStream.read(fileBuffer)) != -1) {
+                bufferedOutputStream.write(fileBuffer, 0, bytesRead);
+                bufferedOutputStream.flush();
             }
-            out.flush();
             
             System.out.println("File sent successfully.");
             CLIENT_LOGGER.info("File sent successfully.");
@@ -359,18 +363,6 @@ public class RCC {
             CLIENT_LOGGER.info("An error occurred while sending the file to the server.");
             e.printStackTrace();
         }
-
-        // Receive the response from the server and print it
-        // try {
-        //     messageSize = in.read(buffer);
-        // } catch (IOException e) {
-        //     System.out.println("ERROR: An error occurred while receiving the response from the server.");
-        //     CLIENT_LOGGER.info("An error occurred while receiving the response from the server.");
-        //     e.printStackTrace();
-        // }
-
-        // response = new String(buffer, 0, messageSize);
-        // System.out.println(response);
     }
 
     /**

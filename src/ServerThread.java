@@ -192,31 +192,28 @@ public class ServerThread extends Thread {
         // Receive the file from the client
         String fileName = petitionTokens[1];
         String filePath = serverFilesDirectory + remoteDirectoryAskedToCheck + fileName;
-        try (FileOutputStream fileOutputStream = new FileOutputStream(filePath)) {
-            byte[] fileBuffer = new byte[BUFFER_SIZE];
-            int bytesRead = 0;
-            
-            while ((bytesRead = in.read(fileBuffer)) != -1) {
-                System.out.println("Bytes read: " + bytesRead);
-                fileOutputStream.write(fileBuffer, 0, bytesRead);
+        
+        try {
+            BufferedInputStream bufferedInputStream = new BufferedInputStream(in);
+            FileOutputStream fileOutputStream = new FileOutputStream(filePath);
+            BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(fileOutputStream);
+    
+            byte[] fileBuffer = new byte[4096];
+            int bytesRead;
+    
+            while((bytesRead = bufferedInputStream.read(fileBuffer)) != -1) {
+                bufferedOutputStream.write(fileBuffer, 0, bytesRead);
+                bufferedOutputStream.flush();
             }
-            
-            System.out.println("File received successfully.");
-            ServerLogger.info("File received successfully.");
-            
-            // Envía una confirmación al cliente de que el archivo se ha recibido correctamente
-            out.write("File received successfully.".getBytes());
-            out.flush();
-        } catch (SocketTimeoutException e) {
-            System.out.println("ERROR: Socket read timed out.");
-            ServerLogger.info("Socket read timed out.");
-            e.printStackTrace();
-        } catch (IOException e) {
+
+        } catch( Exception e)  {
             System.out.println("ERROR: An error occurred while receiving the file from the client.");
             ServerLogger.info("An error occurred while receiving the file from the client.");
-            e.printStackTrace();
+            
         }
 
+        System.out.println("File received successfully.");
+        ServerLogger.info("File received successfully.");
     }
 
     /**

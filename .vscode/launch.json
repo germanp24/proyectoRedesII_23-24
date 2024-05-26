@@ -16,7 +16,7 @@
             "request": "launch",
             "mainClass": "RCC",
             "args": [
-                "ssl",
+                "normal",
                 "127.0.0.1",
                 "8008",
                 "clientsFolder"
@@ -28,7 +28,7 @@
             "request": "launch",
             "mainClass": "RCS",
             "args": [
-                "ssl",
+                "normal",
                 "8008",
                 "2"
             ]
