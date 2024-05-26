@@ -128,6 +128,7 @@ public class RCS {
      */
     private static void runSSLServer() {
         System.out.println("Starting SSL Server...");
+        SERVER_LOGGER.info("Starting SSL Server...");
 
         SSLServerSocket serverSocket = null;
         
@@ -136,24 +137,24 @@ public class RCS {
             KeyStore keyStore = KeyStore.getInstance("JKS");
             keyStore.load(new FileInputStream(serverKeyStorePath), "servpass".toCharArray());
 
-            //Acceso a las claves del almacén
+            // Access to the keys of the key store
             KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
             kmf.init(keyStore, "servpass".toCharArray());
             KeyManager[] keyManagers = kmf.getKeyManagers();
 
-            //Conseguir una factoría de sockets y un ServerSocket
+            // Get a SSLServerSocketFactory and create the server socket
             try {
                 SSLContext sc = SSLContext.getInstance("SSL");
                 sc.init(keyManagers, null, null);
                 SSLServerSocketFactory ssf = sc.getServerSocketFactory();
                 serverSocket = (SSLServerSocket) ssf.createServerSocket(serverPort);
-                System.out.println("servidor arrancado...");
+                System.out.println("SSL Server running on port " + serverPort);
             } catch (Exception e) {
                 e.printStackTrace();
             }
         } catch(Exception e) {
-            System.out.println("Error in the creation of the server socket. Exiting...");
-            SERVER_LOGGER.info("Error in the creation of the server socket. Exiting...");
+            System.out.println("Error in the creation of the SSL Server Socket. Exiting...");
+            SERVER_LOGGER.info("Error in the creation of the SSL Server Socket. Exiting...");
             System.exit(1);
         }
 
@@ -195,6 +196,7 @@ public class RCS {
             fileHandler_RCS.setFormatter(formatter_errors);
             SERVER_LOGGER.setUseParentHandlers(false); // Avoid to show the logs in the console (?)
 
+            System.out.println("Logger of the server created and initialized.");
             SERVER_LOGGER.info("Logger of the server created and initialized.");
 
         } catch (Exception e) {
