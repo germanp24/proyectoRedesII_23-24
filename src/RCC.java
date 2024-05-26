@@ -1,6 +1,5 @@
 import java.io.*;
 import java.net.Socket;
-import java.security.Key;
 import java.security.KeyStore;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
@@ -23,7 +22,11 @@ public class RCC {
     private static String trustedStorePath = "certs/cacerts";
 
     private static final int BUFFER_SIZE = 1024;
-
+/**
+ * Main method of the client.
+ * 
+ * @param args Arguments introduced by the user.
+ */
     public static void main(String[] args){
         checkClientArgs(args);
         startLogger();
@@ -342,7 +345,7 @@ public class RCC {
         // Send the file to the server
         try (FileInputStream fileInputStream = new FileInputStream(localFile)) {
             byte[] fileBuffer = new byte[BUFFER_SIZE];
-            int bytesRead;
+            int bytesRead = 0;
             
             while ((bytesRead = fileInputStream.read(fileBuffer)) != -1) {
                 out.write(fileBuffer, 0, bytesRead);
@@ -358,16 +361,16 @@ public class RCC {
         }
 
         // Receive the response from the server and print it
-        try {
-            messageSize = in.read(buffer);
-        } catch (IOException e) {
-            System.out.println("ERROR: An error occurred while receiving the response from the server.");
-            CLIENT_LOGGER.info("An error occurred while receiving the response from the server.");
-            e.printStackTrace();
-        }
+        // try {
+        //     messageSize = in.read(buffer);
+        // } catch (IOException e) {
+        //     System.out.println("ERROR: An error occurred while receiving the response from the server.");
+        //     CLIENT_LOGGER.info("An error occurred while receiving the response from the server.");
+        //     e.printStackTrace();
+        // }
 
-        response = new String(buffer, 0, messageSize);
-        System.out.println(response);
+        // response = new String(buffer, 0, messageSize);
+        // System.out.println(response);
     }
 
     /**

@@ -133,11 +133,11 @@ public class RCS {
         SSLServerSocket serverSocket = null;
         
         try {
-            // Access to the key store
+            // Access to the keystore
             KeyStore keyStore = KeyStore.getInstance("JKS");
             keyStore.load(new FileInputStream(serverKeyStorePath), "servpass".toCharArray());
 
-            // Access to the keys of the key store
+            // Access to the keys of the keystore
             KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
             kmf.init(keyStore, "servpass".toCharArray());
             KeyManager[] keyManagers = kmf.getKeyManagers();

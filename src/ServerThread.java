@@ -1,5 +1,6 @@
 import java.io.*;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.util.logging.Logger;
 
 public class ServerThread extends Thread {
@@ -190,12 +191,13 @@ public class ServerThread extends Thread {
 
         // Receive the file from the client
         String fileName = petitionTokens[1];
-        String filePath = serverFilesDirectory + remoteDirectoryAskedToCheck + File.separator + fileName;
+        String filePath = serverFilesDirectory + remoteDirectoryAskedToCheck + fileName;
         try (FileOutputStream fileOutputStream = new FileOutputStream(filePath)) {
             byte[] fileBuffer = new byte[BUFFER_SIZE];
-            int bytesRead;
+            int bytesRead = 0;
             
             while ((bytesRead = in.read(fileBuffer)) != -1) {
+                System.out.println("Bytes read: " + bytesRead);
                 fileOutputStream.write(fileBuffer, 0, bytesRead);
             }
             
@@ -204,11 +206,17 @@ public class ServerThread extends Thread {
             
             // Envía una confirmación al cliente de que el archivo se ha recibido correctamente
             out.write("File received successfully.".getBytes());
+            out.flush();
+        } catch (SocketTimeoutException e) {
+            System.out.println("ERROR: Socket read timed out.");
+            ServerLogger.info("Socket read timed out.");
+            e.printStackTrace();
         } catch (IOException e) {
             System.out.println("ERROR: An error occurred while receiving the file from the client.");
             ServerLogger.info("An error occurred while receiving the file from the client.");
             e.printStackTrace();
         }
+
     }
 
     /**
@@ -259,7 +267,6 @@ public class ServerThread extends Thread {
         }
     }
     
-
     /**
      * Executes a command in the server.
      *
@@ -272,7 +279,6 @@ public class ServerThread extends Thread {
         // TO-DO
     }
     
-
     /**
      * Closes the connection with the client.
      *
