@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# This script is used to connect to two different servers using SSH.
+
 # IP addresses
 IP_SERVER=""
 IP_CLIENT=""

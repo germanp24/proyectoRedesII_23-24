@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# This script is used to connect to two different servers using SSH.
+
 # Keys location
 KEY_SERVER_PATH="/home/german/Documents/clonedRepos/proyectoRedesII_23-24/keys/german/serverProyecto_keys.pem"
 KEY_CLIENT_PATH="/home/german/Documents/clonedRepos/proyectoRedesII_23-24/keys/german/clientProyecto_keys.pem"
