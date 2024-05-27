@@ -30,6 +30,9 @@ public class ServerThread extends Thread {
         ServerThread.ServerCurrentClients = ServerCurrentClients;
     }
 
+    /**
+     * Starts the thread.
+     */
     @Override
     public void run() {
         super.run();
