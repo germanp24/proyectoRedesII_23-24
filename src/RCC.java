@@ -10,6 +10,9 @@ import java.util.logging.SimpleFormatter;
 
 import javax.net.ssl.*;
 
+/**
+ * RCC (Remote Cloud Client) is a client that connects to a server to send, receive, list and execute files.
+ */
 public class RCC {
     private static final Logger CLIENT_LOGGER = Logger.getLogger("clientLogger");
     private static final Scanner KEYBOARD = new Scanner(System.in);
@@ -22,11 +25,11 @@ public class RCC {
     private static String trustedStorePath = "certs/cacerts";
 
     private static final int BUFFER_SIZE = 1024;
-/**
- * Main method of the client.
- * 
- * @param args Arguments introduced by the user.
- */
+
+    /**
+     * Main method of the client.
+     * @param args Arguments introduced by the user.
+     */
     public static void main(String[] args){
         checkClientArgs(args);
         startLogger();
@@ -60,7 +63,7 @@ public class RCC {
     }
 
     /**
-     * Starts the client.
+     * Starts the client bifurcating between the "normal" and "ssl" modes.
      */
     private static void startClient(){
         switch (clientMode){
@@ -80,7 +83,7 @@ public class RCC {
     }
 
     /**
-     * Runs a "normal" client
+     * Runs a "normal" client.
      */
     private static void runNormalClient() {
         System.out.println("Starting Normal Client...");
@@ -245,7 +248,6 @@ public class RCC {
 
     /**
      * Lists the files in the server directory requested by the client.
-     *
      * @param petition The petition received from the client.
      * @param out The output stream to send the petition.
      * @param in The input stream to receive the response.
@@ -367,7 +369,6 @@ public class RCC {
 
     /**
      * Receives a file from the server.
-     *
      * @param petition The petition to be sent.
      * @param out The output stream to send the petition.
      * @param in The input stream to receive the response.
@@ -440,14 +441,26 @@ public class RCC {
 
     /**
      * Executes a petition in the server.
-     *
      * @param petition The petition to be sent.
      * @param out The output stream to send the petition.
      * @param in The input stream to receive the response.
      * @param petitionTokens The tokens of the petition.
      */
     private static void ExecPetition(String petition, OutputStream out, InputStream in, String[] petitionTokens) {
-        // TO-DO
+        try {
+            // Send the petition to the server
+            PrintWriter writer = new PrintWriter(out, true);
+            writer.println(petition);
+
+            // Receive the response from the server
+            BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println(line);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private static void ExitPetition(String petition, OutputStream out, Socket clientSocket) {

@@ -3,6 +3,11 @@ import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.util.logging.Logger;
 
+/**
+ *
+ * ServerThread is a class that extends the Thread class and is used to manage the petitions received from the clients in different threads.
+ *
+ */
 public class ServerThread extends Thread {
 
     private static final int BUFFER_SIZE = 1024;
@@ -273,7 +278,43 @@ public class ServerThread extends Thread {
      * @param petitionTokens The tokens of the petition received from the client.
      */
     private static void ExecPetition(String petition, OutputStream out, InputStream in, String[] petitionTokens) {
-        // TO-DO
+        try {
+            // Build the command to execute
+            StringBuilder command = new StringBuilder();
+            for (int i = 1; i < petitionTokens.length; i++) {
+                command.append(petitionTokens[i]).append(" ");
+            }
+
+            // Execute the command
+            Process process = Runtime.getRuntime().exec(command.toString().trim());
+            BufferedReader processOutputReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            BufferedReader processErrorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+
+            // Wait for the process to finish
+            int exitCode = process.waitFor();
+
+            PrintWriter writer = new PrintWriter(out, true);
+
+            // Send the output of the process to the client
+            String line;
+            while ((line = processOutputReader.readLine()) != null) {
+                writer.println(line);
+            }
+
+            // Si hubo errores, enviar los errores al cliente
+            if (exitCode != 0) {
+                while ((line = processErrorReader.readLine()) != null) {
+                    writer.println("ERROR: " + line);
+                }
+            }
+
+        } catch (IOException | InterruptedException e) {
+            try (PrintWriter writer = new PrintWriter(out, true)) {
+                writer.println("ERROR: " + e.getMessage());
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
     }
     
     /**

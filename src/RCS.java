@@ -6,7 +6,7 @@ import java.util.Arrays;
 import java.util.logging.*;
 
 /**
- * RCS (Remote Command Server) is a server that allows clients to execute commands on the server's machine.
+ * RCS (Remote Commander Server) is a server that allows clients to execute commands on the server's machine.
  */
 public class RCS {
     private static final Logger SERVER_LOGGER = Logger.getLogger("serverLogger");
@@ -16,7 +16,7 @@ public class RCS {
     private static int serverMaxClients;
     private static int serverCurrentClients;
     private static final String serverFilesDirectory = "server_files";
-    private static String serverKeyStorePath = "./certs/laptop_german/serverKey.jks";
+    private static final String serverKeyStorePath = "./certs/serverKey.jks";
 
     /**
      * Main method of the server.
