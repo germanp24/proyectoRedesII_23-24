@@ -6,16 +6,17 @@ import java.util.Arrays;
 import java.util.logging.*;
 
 /**
- * RCS (Remote Command Server) is a server that allows clients to execute commands on the server's machine.
+ * RCS (Remote Commander Server) is a server that allows clients to execute commands on the server's machine.
  */
 public class RCS {
-    private static final Logger SERVER_LOGGER = Logger.getLogger("serverLogger");  // Creates the log files
+    private static final Logger SERVER_LOGGER = Logger.getLogger("serverLogger");
 
     private static String serverMode;
     private static int serverPort;
     private static int serverMaxClients;
     private static int serverCurrentClients;
     private static final String serverFilesDirectory = "server_files";
+    private static final String serverKeyStorePath = "./certs/serverKey.jks";
 
     /**
      * Main method of the server.
@@ -34,7 +35,7 @@ public class RCS {
      *
      * @param arguments Arguments introduced by the user.
      */
-    private static void checkServerArgs(String[] arguments) {
+    public static void checkServerArgs(String[] arguments) {
         if (arguments.length != 3) {
             System.out.println("Incorrect number of parameters, use: java RCS <mode> <port> <max_clients>");
             System.exit(1);
@@ -63,7 +64,7 @@ public class RCS {
     /**
      * Starts the server.
      */
-    private static void startServer(){
+    public static void startServer(){
         switch (serverMode) {
             case "normal":
                 runNormalServer();
@@ -83,7 +84,7 @@ public class RCS {
     /**
      * Runs a "normal" server.
      */
-    private static void runNormalServer(){
+    public static void runNormalServer(){
         System.out.println("Starting Normal Server...");
         ServerSocket serverSocket = null;
 
@@ -125,89 +126,67 @@ public class RCS {
     /**
      * Runs an SSL Server.
      */
-    private static void runSSLServer() {
-
-        // Path and password of the server keyStore
-        String keyStorePath = "certs/serverKey.jks";
-        String keyStorePassword = "servpass";
-
-        // Path and password of the server trustedStore
-        String trustStorePath = "certs/ServerTrustedStore.jks";
-        String trustStorePassword = "servpass";
+    public static void runSSLServer() {
+        System.out.println("Starting SSL Server...");
+        SERVER_LOGGER.info("Starting SSL Server...");
 
         SSLServerSocket serverSocket = null;
-
+        
         try {
-            // Load server keyStore
+            // Access to the keystore
             KeyStore keyStore = KeyStore.getInstance("JKS");
-            keyStore.load(new FileInputStream(keyStorePath), keyStorePassword.toCharArray());
+            keyStore.load(new FileInputStream(serverKeyStorePath), "servpass".toCharArray());
 
-            // Load server trustedStore
-            KeyStore trustedStore = KeyStore.getInstance("JKS");
-            trustedStore.load(new FileInputStream(trustStorePath), trustStorePassword.toCharArray());
-
-            // Configure the trust manager to use the server's trustedStore
-            TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-            tmf.init(trustedStore);
-
-            // Configure the key manager to use the server's keyStore
+            // Access to the keys of the keystore
             KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            kmf.init(keyStore, keyStorePassword.toCharArray());
+            kmf.init(keyStore, "servpass".toCharArray());
+            KeyManager[] keyManagers = kmf.getKeyManagers();
 
-            // Create the SSLContext
-            SSLContext sc = SSLContext.getInstance("SSL");
-            sc.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
-
-            // Create the SSLServerSocketFactory
-            SSLServerSocketFactory ssf = sc.getServerSocketFactory();
-
-            // Create the SSLServerSocket
-            serverSocket = (SSLServerSocket) ssf.createServerSocket(serverPort);
-
-            System.out.println("SSL Server correctly created");
-            SERVER_LOGGER.info("SSL Server correctly created");
-
-        } catch (Exception e) {
-            e.printStackTrace();
+            // Get a SSLServerSocketFactory and create the server socket
+            try {
+                SSLContext sc = SSLContext.getInstance("SSL");
+                sc.init(keyManagers, null, null);
+                SSLServerSocketFactory ssf = sc.getServerSocketFactory();
+                serverSocket = (SSLServerSocket) ssf.createServerSocket(serverPort);
+                System.out.println("SSL Server running on port " + serverPort);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        } catch(Exception e) {
+            System.out.println("Error in the creation of the SSL Server Socket. Exiting...");
+            SERVER_LOGGER.info("Error in the creation of the SSL Server Socket. Exiting...");
+            System.exit(1);
         }
 
         // Loop to accept clients while the number of clients is under the maximum specified.
         while (serverCurrentClients <= serverMaxClients) {
             SSLSocket clientSocket = null;
 
-            System.out.println("Waiting for clients to connect...");
-
             try {
-                clientSocket = (SSLSocket) serverSocket.accept(); // Blocks the petition until a client connects.
+                clientSocket = (SSLSocket) serverSocket.accept();
 
-                serverCurrentClients++;
-
-
-                // Obtain client's information
-                SSLSession sslSession = clientSocket.getSession();
-                String clientHost = sslSession.getPeerHost();
-                int clientPort = sslSession.getPeerPort();
-                System.out.println("Client connected from " + clientHost + ":" + clientPort);
-                SERVER_LOGGER.info("Client connected from " + clientHost + ":" + clientPort);
-
-                // Create a new thread for the client
-                ServerThread serverThread = new ServerThread(clientSocket, SERVER_LOGGER, serverFilesDirectory, serverCurrentClients);
-                serverThread.start();
-                System.out.println("Thread started for client " + clientHost + ":" + clientPort);
-                SERVER_LOGGER.info("Thread started for client " + clientHost + ":" + clientPort);
-
-            } catch (Exception e) {
-                System.out.println("Error in the connection with the client. Exiting...");
-                SERVER_LOGGER.info("Error in the connection with the client. Exiting...");
-                System.exit(1);
+            } catch (IOException e) {
+                System.out.println("Error accepting the client connection.");
+                SERVER_LOGGER.info("Error accepting the client connection.");
             }
+
+            System.out.println("Client connected from " + clientSocket.getInetAddress().getHostAddress());
+            SERVER_LOGGER.info("Client connected from " + clientSocket.getInetAddress().getHostAddress());
+
+            serverCurrentClients++; // Increases the variable by one every time a client is connected.
+            System.out.println("Current clients connected: " + serverCurrentClients);
+
+            // Create and start a new thread for the client.
+            ServerThread serverThread = new ServerThread(clientSocket, SERVER_LOGGER, serverFilesDirectory, serverCurrentClients);
+            serverThread.start();
         }
+        
     }
 
     /**
      * Starts and configure the logger for the server.
      */
-    private static void startLogger() {
+    public static void startLogger() {
         try {
             checkLogsFolder();
 
@@ -217,6 +196,7 @@ public class RCS {
             fileHandler_RCS.setFormatter(formatter_errors);
             SERVER_LOGGER.setUseParentHandlers(false); // Avoid to show the logs in the console (?)
 
+            System.out.println("Logger of the server created and initialized.");
             SERVER_LOGGER.info("Logger of the server created and initialized.");
 
         } catch (Exception e) {
@@ -228,7 +208,7 @@ public class RCS {
     /**
      * Checks that the "logs" folder exists, if not, then creates it.
      */
-    private static void checkLogsFolder() {  // check if logs folder exists, if not, create it
+    public static void checkLogsFolder() {
         File logsFolder = new File("logs");
 
         if (!logsFolder.exists()) {
@@ -240,7 +220,8 @@ public class RCS {
      * Checks if the "server_files" directory exists, if not,
      * then creates it and fills it with 3 files .txt with "Hello World!" inside.
      */
-    private static void checkFilesDirectory() {
+    public static void checkFilesDirectory() {
+
         File serverFilesDirectory = new File(RCS.serverFilesDirectory);
 
         // If the directory does not exist, then creates it and fills it with 3 files .txt with "Hello World!" inside.
@@ -290,4 +271,4 @@ public class RCS {
             }
         }
     }
-}
+} 
