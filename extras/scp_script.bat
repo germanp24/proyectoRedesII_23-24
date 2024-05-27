@@ -12,8 +12,8 @@ set SERVERTHREAD=C:\Users\german\ClonedRepos\proyectoRedesII_23-24\src\ServerThr
 set RCC=C:\Users\german\ClonedRepos\proyectoRedesII_23-24\src\RCC.java
 
 :: Server and client public IPs
-set SERVER_IP=184.72.167.0
-set CLIENT_IP=34.228.159.57
+set SERVER_IP=54.83.69.115
+set CLIENT_IP=44.223.29.1
 
 :: Remote path where the files will be stored in the instances (I chose /home/ubuntu/proyectoRedes in both instances)
 set REMOTE_PATH=/home/ubuntu/proyectoRedes

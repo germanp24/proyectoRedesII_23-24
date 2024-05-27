@@ -50,7 +50,7 @@ public class ServerThread extends Thread {
             in = threadSocket.getInputStream();
             out = threadSocket.getOutputStream();
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("Problem creating the input and output streams.");
         }
 
         // Read the petition from the client.
@@ -159,7 +159,7 @@ public class ServerThread extends Thread {
                 try {
                     out.write("Failed to list directory contents\n".getBytes());
                 } catch (IOException e) {
-                    throw new RuntimeException(e);
+                    System.out.println("Failed to list directory contents");
                 }
             }
         }
@@ -205,11 +205,11 @@ public class ServerThread extends Thread {
     
             byte[] fileBuffer = new byte[4096];
             int bytesRead;
-    
-            while((bytesRead = bufferedInputStream.read(fileBuffer)) != -1) {
-                bufferedOutputStream.write(fileBuffer, 0, bytesRead);
-                bufferedOutputStream.flush();
-            }
+
+            bytesRead = bufferedInputStream.read(fileBuffer);
+            bufferedOutputStream.write(fileBuffer, 0, bytesRead);
+            bufferedOutputStream.flush();
+
 
         } catch( Exception e)  {
             System.out.println("ERROR: An error occurred while receiving the file from the client.");

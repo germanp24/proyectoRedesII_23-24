@@ -426,9 +426,10 @@ public class RCC {
             byte[] fileBuffer = new byte[BUFFER_SIZE];
             int bytesRead;
 
-            while ((bytesRead = in.read(fileBuffer)) != -1) {
-                fileOutputStream.write(fileBuffer, 0, bytesRead);
-            }
+            bytesRead = in.read(fileBuffer);
+            fileOutputStream.write(fileBuffer, 0, bytesRead);
+            fileOutputStream.flush();
+
 
             System.out.println("File received successfully.");
             CLIENT_LOGGER.info("File received successfully.");
