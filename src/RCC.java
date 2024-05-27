@@ -42,7 +42,7 @@ public class RCC {
      *
      * @param arguments Arguments introduced by the user.
      */
-    private static void checkClientArgs(String[] arguments) {
+    public static void checkClientArgs(String[] arguments) {
         if (arguments.length != 4) {
             System.out.println("Incorrect number of parameters, use: java RCC <mode> <host> <port> <clients_folder>");
             CLIENT_LOGGER.info("Incorrect number of parameters, use: java RCC <mode> <host> <port> <clients_folder>");
@@ -65,7 +65,7 @@ public class RCC {
     /**
      * Starts the client bifurcating between the "normal" and "ssl" modes.
      */
-    private static void startClient(){
+    public static void startClient(){
         switch (clientMode){
             case "normal":
                 runNormalClient();
@@ -85,7 +85,7 @@ public class RCC {
     /**
      * Runs a "normal" client.
      */
-    private static void runNormalClient() {
+    public static void runNormalClient() {
         System.out.println("Starting Normal Client...");
         CLIENT_LOGGER.info("Starting Normal Client...");
 
@@ -120,7 +120,7 @@ public class RCC {
     /**
      * Runs the "SSL" client mode.
      */
-    private static void runSSLClient(){
+    public static void runSSLClient(){
         System.out.println("Starting SSL Client...");
         CLIENT_LOGGER.info("Starting SSL Client...");
 
@@ -187,7 +187,7 @@ public class RCC {
      *
      * @param clientSocket The client's socket.
      */
-    private static void runPetitions(Socket clientSocket){
+    public static void runPetitions(Socket clientSocket){
 
         InputStream in = null;
         OutputStream out = null;
@@ -253,7 +253,7 @@ public class RCC {
      * @param in The input stream to receive the response.
      * @param petitionTokens The tokens of the petition.
      */
-    private static void ListPetition(String petition, OutputStream out, InputStream in, String[] petitionTokens) {
+    public static void ListPetition(String petition, OutputStream out, InputStream in, String[] petitionTokens) {
         if (petitionTokens.length != 2) {
             System.out.println("ERROR: Incorrect number of parameters, use: LIST <remote_directory>");
             CLIENT_LOGGER.info("Incorrect number of parameters.");
@@ -298,7 +298,7 @@ public class RCC {
      * @param in The input stream to receive the response.
      * @param petitionTokens The tokens of the petition.
      */
-    private static void SendPetition(String petition, OutputStream out, InputStream in, String[] petitionTokens) {
+    public static void SendPetition(String petition, OutputStream out, InputStream in, String[] petitionTokens) {
         // Check the arguments length
         if (petitionTokens.length != 3) {
             System.out.println("ERROR: Incorrect number of parameters.");
@@ -374,7 +374,7 @@ public class RCC {
      * @param in The input stream to receive the response.
      * @param petitionTokens The tokens of the petition.
      */
-    private static void ReceivePetition(String petition, OutputStream out, InputStream in, String[] petitionTokens) {
+    public static void ReceivePetition(String petition, OutputStream out, InputStream in, String[] petitionTokens) {
         // Save the filename in a variable, i have to cut the petitionTokens[1] and get only the last word
         String[] remoteFileTokens = petitionTokens[1].split("/");
         // Get the last word
@@ -447,7 +447,7 @@ public class RCC {
      * @param in The input stream to receive the response.
      * @param petitionTokens The tokens of the petition.
      */
-    private static void ExecPetition(String petition, OutputStream out, InputStream in, String[] petitionTokens) {
+    public static void ExecPetition(String petition, OutputStream out, InputStream in, String[] petitionTokens) {
         try {
             // Send the petition to the server
             PrintWriter writer = new PrintWriter(out, true);
@@ -464,7 +464,13 @@ public class RCC {
         }
     }
 
-    private static void ExitPetition(String petition, OutputStream out, Socket clientSocket) {
+    /**
+     * Sends the "EXIT" petition to the server.
+     * @param petition
+     * @param out
+     * @param clientSocket
+     */
+    public static void ExitPetition(String petition, OutputStream out, Socket clientSocket) {
         try {
             out.write(petition.getBytes());
             infiniteLoopStatus = false;
@@ -476,7 +482,7 @@ public class RCC {
     /**
      * Initializes the logger for the client.
      */
-    private static void startLogger() {
+    public static void startLogger() {
         try {
             checkLogsFolder();
 
@@ -497,7 +503,7 @@ public class RCC {
     /**
      * Checks if the "logs" folder exists, if not, then creates it.
      */
-    private static void checkLogsFolder() {
+    public static void checkLogsFolder() {
         File logsFolder = new File("logs");
 
         if (!logsFolder.exists()) {
@@ -508,7 +514,7 @@ public class RCC {
     /**
      * Checks that the "clients" folder exists, if not, then creates it.
      */
-    private static void checkFilesDirectory() {
+    public static void checkFilesDirectory() {
         File logsFolder = new File(clientFolder);
 
         if (!logsFolder.exists()) {
@@ -530,7 +536,7 @@ public class RCC {
     /**
      * Shows the options available for the client.
      */
-    private static void showOptions() {
+    public static void showOptions() {
         System.out.println("The available petitions are: ");
         System.out.println("1. LIST <remote_directory>");
         System.out.println("2. SEND <local_file> <remote_directory>");

@@ -45,7 +45,7 @@ public class ServerThread extends Thread {
     /**
      * Processes the petition received from the client.
      */
-    private void processPetition(){
+    public void processPetition(){
         // Create the input and output streams to communicate with the client.
         InputStream in = null;
         OutputStream out = null;
@@ -119,7 +119,7 @@ public class ServerThread extends Thread {
      * @param in       The input stream to receive data from the client.
      * @param petitionTokens The tokens of the petition received from the client.
      */
-    private static void ListPetition(String petition, OutputStream out, InputStream in, String[] petitionTokens) {
+    public static void ListPetition(String petition, OutputStream out, InputStream in, String[] petitionTokens) {
         String directoryRequestedToList = petitionTokens[1];
 
         File completeServerDirectoryRequested = new File(serverFilesDirectory + directoryRequestedToList);
@@ -176,7 +176,7 @@ public class ServerThread extends Thread {
      * @param in       The input stream to receive data from the client.
      * @param petitionTokens The tokens of the petition received from the client.
      */
-    private static void SendPetition(String petition, OutputStream out, InputStream in, String[] petitionTokens) {
+    public static void SendPetition(String petition, OutputStream out, InputStream in, String[] petitionTokens) {
         String remoteDirectoryAskedToCheck = petitionTokens[2];
 
         // Check if the directory exists, and if is a directory
@@ -232,7 +232,7 @@ public class ServerThread extends Thread {
      * @param in       The input stream to receive data from the client.
      * @param petitionTokens The tokens of the petition received from the client.
      */
-    private static void ReceivePetition(String petition, OutputStream out, InputStream in, String[] petitionTokens) {
+    public static void ReceivePetition(String petition, OutputStream out, InputStream in, String[] petitionTokens) {
         String fileName = petitionTokens[1];
         String filePath = serverFilesDirectory + fileName;
 
@@ -280,7 +280,7 @@ public class ServerThread extends Thread {
      * @param in       The input stream to receive data from the client.
      * @param petitionTokens The tokens of the petition received from the client.
      */
-    private static void ExecPetition(String petition, OutputStream out, InputStream in, String[] petitionTokens) {
+    public static void ExecPetition(String petition, OutputStream out, InputStream in, String[] petitionTokens) {
         try {
             // Build the command to execute
             StringBuilder command = new StringBuilder();
@@ -324,7 +324,7 @@ public class ServerThread extends Thread {
      * Closes the connection with the client.
      *
      */
-    private static void ExitPetition() {
+    public static void ExitPetition() {
         try {
             threadSocket.close();
             System.out.println("Connection with the client" + threadSocket.getInetAddress() + " closed.");

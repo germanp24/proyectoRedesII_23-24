@@ -35,7 +35,7 @@ public class RCS {
      *
      * @param arguments Arguments introduced by the user.
      */
-    private static void checkServerArgs(String[] arguments) {
+    public static void checkServerArgs(String[] arguments) {
         if (arguments.length != 3) {
             System.out.println("Incorrect number of parameters, use: java RCS <mode> <port> <max_clients>");
             System.exit(1);
@@ -64,7 +64,7 @@ public class RCS {
     /**
      * Starts the server.
      */
-    private static void startServer(){
+    public static void startServer(){
         switch (serverMode) {
             case "normal":
                 runNormalServer();
@@ -84,7 +84,7 @@ public class RCS {
     /**
      * Runs a "normal" server.
      */
-    private static void runNormalServer(){
+    public static void runNormalServer(){
         System.out.println("Starting Normal Server...");
         ServerSocket serverSocket = null;
 
@@ -126,7 +126,7 @@ public class RCS {
     /**
      * Runs an SSL Server.
      */
-    private static void runSSLServer() {
+    public static void runSSLServer() {
         System.out.println("Starting SSL Server...");
         SERVER_LOGGER.info("Starting SSL Server...");
 
@@ -186,7 +186,7 @@ public class RCS {
     /**
      * Starts and configure the logger for the server.
      */
-    private static void startLogger() {
+    public static void startLogger() {
         try {
             checkLogsFolder();
 
@@ -208,7 +208,7 @@ public class RCS {
     /**
      * Checks that the "logs" folder exists, if not, then creates it.
      */
-    private static void checkLogsFolder() {
+    public static void checkLogsFolder() {
         File logsFolder = new File("logs");
 
         if (!logsFolder.exists()) {
@@ -220,7 +220,7 @@ public class RCS {
      * Checks if the "server_files" directory exists, if not,
      * then creates it and fills it with 3 files .txt with "Hello World!" inside.
      */
-    private static void checkFilesDirectory() {
+    public static void checkFilesDirectory() {
 
         File serverFilesDirectory = new File(RCS.serverFilesDirectory);
 
